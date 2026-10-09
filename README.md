@@ -21,7 +21,6 @@ A terminal app for browsing Pokemon stats, with search and filters by name, type
 pokedex-tui/
 ├── pyproject.toml          project info, Textual dependency, launch command
 ├── README.md               screenshot, install steps, keybindings
-├── LICENSE                 licence + data credit
 ├── src/
 │   └── pokedex_tui/
 │       ├── __main__.py     entry point, starts the app
