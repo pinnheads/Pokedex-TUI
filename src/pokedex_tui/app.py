@@ -1,4 +1,7 @@
+from typing import ClassVar
+
 from textual.app import App, ComposeResult
+from textual.binding import Binding, BindingType
 from textual.widgets import Footer, Header
 
 
@@ -7,9 +10,9 @@ class PokedexApp(App):
 
     #    CSS_PATH = "pokedex.tcss"
 
-    BINDINGS = [
-        ("d", "toggle_dark", "Toggle dark mode"),
-        ("q", "quit", "Quit app"),
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("d", "toggle_dark", "Toggle dark mode"),
+        Binding("q", "quit", "Quit app"),
     ]
 
     def compose(self) -> ComposeResult:
