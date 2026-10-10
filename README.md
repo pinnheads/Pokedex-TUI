@@ -21,7 +21,6 @@ A terminal app for browsing Pokemon stats, with search and filters by name, type
 pokedex-tui/
 ├── pyproject.toml          project info, Textual dependency, launch command
 ├── README.md               screenshot, install steps, keybindings
-├── LICENSE                 licence + data credit
 ├── src/
 │   └── pokedex_tui/
 │       ├── __main__.py     entry point, starts the app
@@ -49,6 +48,21 @@ pokedex-tui/
     ├── test_query.py       logic tests
     ├── test_ui.py          Textual pilot tests
     └── snapshots/          screenshot tests
+```
+
+## Getting Started
+
+1. Clone the repository
+
+```shell
+git clone https://github.com/pinnheads/Pokedex-TUI.git
+cd Pokedex-TUI
+```
+
+2. Start the app
+
+```shell
+uv run python -m pokedex_tui
 ```
 
 ## Acknowledgements
