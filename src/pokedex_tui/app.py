@@ -23,7 +23,7 @@ class PokedexApp(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
-        yield Header(show_clock=True)
+        yield Header(name="Pokedex", show_clock=True)
         yield Footer()
 
     def action_toggle_dark(self) -> None:
