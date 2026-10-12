@@ -14,12 +14,13 @@ class PokedexDataError(ValueError):
     Single error class used to represent in loading, cleaning and validating records
     """
 
-    def __init__(self, line=None) -> None:
+    def __init__(self, message: str | None, line: str | None = None) -> None:
         super().__init__(line)
         self.line = line
+        self.message = message
 
     def __str__(self):
-        return f"line {self.line}"
+        return f"{self.message} Line: {self.line}" if self.line else f"{self.message}"
 
 
 def bundled_csv_path():
@@ -31,20 +32,22 @@ def bundled_csv_path():
     return csv_path
 
 
-def load_pokemon(path=None):
+def load_pokemon(path: str | Path | None = None):
     """
     Loads the given or bundled csv for pokemon data.
     Returns a tuple of Pokemon records in file order,
     """
-    path = bundled_csv_path() if not path else path
+    path = Path(bundled_csv_path()) if path is None else Path(path)
 
-    if Path(path).is_file():
-        with open(path, "r") as f:
-            data = csv.DictReader(f)
-            for row in data:
-                print(row)
+    if path.is_file():
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                data = csv.DictReader(f)
+                assert data is not None
+        except UnicodeDecodeError as e:
+            raise PokedexDataError(message=f"{e} file isn't UTF-8")
 
-    raise PokedexDataError(None)
+    raise PokedexDataError(message=f"{path} not found!!")
 
 
 if __name__ == "__main__":
