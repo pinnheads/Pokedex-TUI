@@ -1,0 +1,4 @@
+"ID","Name","Form","Type1","Type2","Total","HP","Attack","Defense","Sp. Atk","Sp. Def","Speed","Generation"
+1,"Bulbasaur"," ","Grass","Poison",318,45,49,49,65,65,45,1
+4,"Charmander"," ","Fire"," ",309,39,52,43,60,50,65,1
+6,"Charizard"," ","Fire","Flying",534,78,eighty-four,78,109,85,100,1

@@ -1,0 +1,15 @@
+"ID","Name","Form","Type1","Type2","Total","HP","Attack","Defense","Sp. Atk","Sp. Def","Speed","Generation"
+1,"Bulbasaur"," ","Grass","Poison",318,45,49,49,65,65,45,1
+4,"Charmander"," ","Fire"," ",309,39,52,43,60,50,65,1
+6,"Charizard"," ","Fire","Flying",534,78,84,78,109,85,100,1
+6,"Charizard","Mega Charizard X","Fire","Dragon",634,78,130,111,130,85,100,6
+25,"  Pikachu "," ","Electric "," ",320,35,55,40,50,50,90,1
+26,"Raichu"," ","Electric"," ",485,60,90,55,90,80,110,1
+26,"Raichu","Alolan Raichu","Electric","Psychic",485,60,85,50,95,85,110,7
+29,"Nidoran","Female","Poison"," ",275,55,47,52,40,40,41,1
+32,"Nidoran","Male","Poison"," ",273,46,57,40,40,40,50,1
+122,"Mr. Mime"," ","Psychic","Fairy",460,40,45,65,100,120,90,1
+669,"Flabébé"," ","Fairy"," ",303,44,38,39,61,79,42,6
+718,"Zygarde50% Forme"," ","Dragon","Ground",600,108,100,121,81,95,95,6
+718,"Zygarde10% Forme"," ","Dragon","Ground",486,54,100,71,61,85,115,7
+718,"Zygarde","Complete Forme","Dragon","Ground",708,216,100,121,91,95,85,7
