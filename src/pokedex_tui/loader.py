@@ -7,7 +7,7 @@ import csv
 from pathlib import Path
 
 import pokedex_tui
-from pokedex_tui.models import Pokemon
+from pokedex_tui.models import GENERATIONS, TYPES, Pokemon
 
 CSV_FIELD_MAP = {
     "ID": "dex_id",
@@ -89,15 +89,48 @@ def check_fields(row: dict, line_num: int):
         )
 
 
-def get_pokemon(row: dict) -> Pokemon:
+def whole_number_in_range(val: int, field_name: str) -> bool:
+    """Checks if the passed value a whole number and in range based on field name"""
+    if field_name == "ID" and val < 1:
+        return False
+
+    if field_name in [
+        "HP",
+        "Attack",
+        "Defense",
+        "Sp. Atk",
+        "Sp. Def",
+        "Speed",
+    ] and (val > 255 or val < 1):
+        return False
+
+    if field_name == "Generation" and val not in GENERATIONS:
+        return False
+
+    return not (field_name == "Total" and val < 1)
+
+
+def get_pokemon(row: dict, line_num: int) -> Pokemon:
     """Converts CSV row into a Pokemon"""
     kwargs = {}
     for csv_field, poke_field in CSV_FIELD_MAP.items():
         trimmed_val = row[csv_field].strip()
 
+        if csv_field in ["Name", "Type1"] and trimmed_val == "":
+            raise PokedexDataError(f"{csv_field} contains blank data: {row}", line_num)
+
         # Deal with empty Form and Type2 Values
         if csv_field in ["Form", "Type2"] and trimmed_val == "":
             trimmed_val = None
+
+        if (
+            csv_field in ["Type1", "Type2"]
+            and trimmed_val not in TYPES
+            and trimmed_val is not None
+        ):
+            raise PokedexDataError(
+                f"{csv_field} is an unrecoginzed type. {trimmed_val}", line_num
+            )
 
         # Convert ID and stats to int
         if (
@@ -114,13 +147,28 @@ def get_pokemon(row: dict) -> Pokemon:
                 "Generation",
             ]
             and trimmed_val is not None
-            and trimmed_val.isdigit()
         ):
-            trimmed_val = int(trimmed_val)
+            try:
+                trimmed_val = int(trimmed_val)
+            except ValueError:
+                raise PokedexDataError(
+                    f"{csv_field} not in range: {trimmed_val}", line_num
+                )
+
+            if not whole_number_in_range(trimmed_val, csv_field):
+                raise PokedexDataError(
+                    f"{csv_field} not in range: {trimmed_val}", line_num
+                )
 
         kwargs[poke_field] = trimmed_val
 
-    return Pokemon(**kwargs)
+    new_pokemon = Pokemon(**kwargs)
+    print(new_pokemon.stats)
+
+    if new_pokemon.total != sum(new_pokemon.stats):
+        raise PokedexDataError("Totals do not match!", line_num)
+
+    return new_pokemon
 
 
 def load_pokemon(path: str | Path | None = None):
@@ -141,7 +189,7 @@ def load_pokemon(path: str | Path | None = None):
 
                 for row in reader:
                     check_fields(row, reader.line_num)
-                    pokemon_list.append(get_pokemon(row))
+                    pokemon_list.append(get_pokemon(row, reader.line_num))
 
             return tuple(pokemon_list)
 
@@ -152,4 +200,4 @@ def load_pokemon(path: str | Path | None = None):
 
 
 if __name__ == "__main__":
-    print(load_pokemon())
+    load_pokemon()
