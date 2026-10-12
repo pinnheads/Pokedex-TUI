@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+import dataclasses
+from dataclasses import dataclass, field
 
 TYPES = (
     "Bug",
@@ -21,7 +22,7 @@ TYPES = (
     "Water",
 )
 GENERATIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-NO_SECOND_TYPE = "NA"
+NO_SECOND_TYPE = "None"
 
 
 @dataclass(frozen=True)
@@ -72,4 +73,20 @@ class Pokemon:
 
 @dataclass(frozen=True)
 class Criteria:
-    pass
+    """
+    Search and filter criteria
+    NOTE: None means to represent "Any" for type2 and NO_SECOND_TYPE means "single-type only"
+    """
+
+    search: str = field(default="")
+    type1: str | None = field(default=None)
+    type2: str | None = field(default=None)
+    generations: frozenset = field(default=frozenset([]))
+    hide_forms: bool = field(default=False)
+
+    @property
+    def is_default(self) -> bool:
+        return self == Criteria()
+
+    def replace(self, **changes):
+        return dataclasses.replace(self, **changes)
