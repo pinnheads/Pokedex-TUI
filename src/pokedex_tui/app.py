@@ -15,6 +15,7 @@ class PokedexApp(App):
     tcss_path = base_dir / "styles" / "app.tcss"
 
     CSS_PATH = tcss_path
+    TITLE = "Pokédex"
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("d", "toggle_dark", "Toggle dark mode"),
@@ -23,7 +24,7 @@ class PokedexApp(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
-        yield Header(name="Pokedex", show_clock=True)
+        yield Header(name="Pokédex", show_clock=True)
         yield Footer()
 
     def action_toggle_dark(self) -> None:
