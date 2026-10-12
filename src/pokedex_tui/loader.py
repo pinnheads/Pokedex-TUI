@@ -163,7 +163,6 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
         kwargs[poke_field] = trimmed_val
 
     new_pokemon = Pokemon(**kwargs)
-    print(new_pokemon.stats)
 
     if new_pokemon.total != sum(new_pokemon.stats):
         raise PokedexDataError("Totals do not match!", line_num)
@@ -186,10 +185,21 @@ def load_pokemon(path: str | Path | None = None):
                 reader = csv.DictReader(f)
 
                 check_headers(reader.fieldnames)
+                keys = set()
 
                 for row in reader:
                     check_fields(row, reader.line_num)
-                    pokemon_list.append(get_pokemon(row, reader.line_num))
+
+                    new_pokemon = get_pokemon(row, reader.line_num)
+
+                    if new_pokemon.key not in keys:
+                        keys.add(new_pokemon.key)
+                    else:
+                        raise PokedexDataError(
+                            f"Duplicate data: {row}", reader.line_num
+                        )
+
+                    pokemon_list.append(new_pokemon)
 
             return tuple(pokemon_list)
 

@@ -30,7 +30,8 @@ dev = [
 [tool.pytest]
 testpaths = [
 	"tests/test_smoke.py",
-	"tests/test_models.py"
+	"tests/test_models.py",
+	"tests/test_loader.py"
 ]
 asyncio_mode = "auto"
 
