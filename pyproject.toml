@@ -29,7 +29,7 @@ dev = [
 
 [tool.pytest]
 testpaths = [
-	"tests/test_smoke.py"
+	"tests/"
 ]
 asyncio_mode = "auto"
 
