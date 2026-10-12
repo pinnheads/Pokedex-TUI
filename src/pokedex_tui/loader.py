@@ -7,6 +7,7 @@ import csv
 from pathlib import Path
 
 import pokedex_tui
+from pokedex_tui.models import Pokemon
 
 CSV_FIELD_MAP = {
     "ID": "dex_id",
@@ -70,6 +71,58 @@ def check_headers(csv_fields) -> None:
         raise PokedexDataError(f"Fields missing in CSV file: {missing_fields}", 1)
 
 
+def check_fields(row: dict, line_num: int):
+    """Checks row data for missing/extra fileds and raises Error if found"""
+
+    # Check for extra fields
+    if None in row:
+        extra_values = row[None]
+        raise PokedexDataError(
+            f"Too many fields in row {line_num}: {extra_values}", line_num
+        )
+
+    # Check for too few fields
+    if None in row.values():
+        missing_fields = [k for k, v in row.items() if v is None]
+        raise PokedexDataError(
+            f"column {line_num} has TOO FEW fields. Missing: {missing_fields}", line_num
+        )
+
+
+def get_pokemon(row: dict) -> Pokemon:
+    """Converts CSV row into a Pokemon"""
+    kwargs = {}
+    for csv_field, poke_field in CSV_FIELD_MAP.items():
+        trimmed_val = row[csv_field].strip()
+
+        # Deal with empty Form and Type2 Values
+        if csv_field in ["Form", "Type2"] and trimmed_val == "":
+            trimmed_val = None
+
+        # Convert ID and stats to int
+        if (
+            csv_field
+            in [
+                "ID",
+                "Total",
+                "HP",
+                "Attack",
+                "Defense",
+                "Sp. Atk",
+                "Sp. Def",
+                "Speed",
+                "Generation",
+            ]
+            and trimmed_val is not None
+            and trimmed_val.isdigit()
+        ):
+            trimmed_val = int(trimmed_val)
+
+        kwargs[poke_field] = trimmed_val
+
+    return Pokemon(**kwargs)
+
+
 def load_pokemon(path: str | Path | None = None):
     """
     Loads the given or bundled csv for pokemon data.
@@ -77,14 +130,20 @@ def load_pokemon(path: str | Path | None = None):
     """
     path = Path(bundled_csv_path()) if path is None else Path(path)
 
+    pokemon_list = []
     # Check if path is actually a file
     if path.is_file():
         try:
             with open(path, "r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
+
                 check_headers(reader.fieldnames)
-                if next(reader, None) is None:
-                    return ()
+
+                for row in reader:
+                    check_fields(row, reader.line_num)
+                    pokemon_list.append(get_pokemon(row))
+
+            return tuple(pokemon_list)
 
         except UnicodeDecodeError as e:
             raise PokedexDataError(message=f"{e} file isn't UTF-8")
@@ -93,4 +152,4 @@ def load_pokemon(path: str | Path | None = None):
 
 
 if __name__ == "__main__":
-    load_pokemon("/Users/utsavdeep/personal/pokedex-tui/tests/fixtures/empty.csv")
+    print(load_pokemon())
