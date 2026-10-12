@@ -31,7 +31,7 @@ class PokedexDataError(ValueError):
     """
 
     def __init__(self, message: str | None, line: int | None = None) -> None:
-        super().__init__(line)
+        super().__init__(message)
         self.line = line
         self.message = message
 
