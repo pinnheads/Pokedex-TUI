@@ -1,14 +1,21 @@
+from pathlib import Path
 from typing import ClassVar
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.widgets import Footer, Header
 
+import pokedex_tui
+
 
 class PokedexApp(App):
     """A textual app to browse Pokemon stats, with search and filters by name, type and generation"""
 
-    #    CSS_PATH = "pokedex.tcss"
+    base_dir = Path(pokedex_tui.__file__).resolve().parent
+    tcss_path = base_dir / "styles" / "app.tcss"
+
+    CSS_PATH = tcss_path
+    TITLE = "Pokédex"
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("d", "toggle_dark", "Toggle dark mode"),
@@ -17,7 +24,7 @@ class PokedexApp(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
-        yield Header(show_clock=True)
+        yield Header(name="Pokédex", show_clock=True)
         yield Footer()
 
     def action_toggle_dark(self) -> None:
