@@ -37,9 +37,37 @@ class Pokemon:
     attack: int
     defense: int
     sp_atk: int
+    sp_def: int
     speed: int
     total: int
     generation: int
+
+    @property
+    def display_name(self) -> str:
+        return self.form if self.form else self.name
+
+    @property
+    def types(self) -> tuple:
+        return (self.type1, self.type2) if self.type2 else (self.type1,)
+
+    @property
+    def stats(self) -> tuple:
+        return (
+            self.hp,
+            self.attack,
+            self.defense,
+            self.sp_atk,
+            self.sp_def,
+            self.speed,
+        )
+
+    @property
+    def is_form(self) -> bool:
+        return bool(self.form)
+
+    @property
+    def key(self) -> str:
+        return f"{self.dex_id} {self.name} {self.form}"
 
 
 @dataclass(frozen=True)
