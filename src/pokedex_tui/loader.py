@@ -181,7 +181,7 @@ def load_pokemon(path: str | Path | None = None):
     # Check if path is actually a file
     if path.is_file():
         try:
-            with open(path, "r", encoding="utf-8-sig") as f:
+            with open(path, "r", encoding="utf-8-sig", newline="") as f:
                 reader = csv.DictReader(f)
 
                 check_headers(reader.fieldnames)
