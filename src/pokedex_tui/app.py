@@ -8,13 +8,7 @@ from textual.types import CSSPathType
 
 import pokedex_tui
 from pokedex_tui.loader import PokedexDataError, load_pokemon
-from pokedex_tui.models import Pokemon
 from pokedex_tui.screens.browser import Browser
-
-
-def get_data() -> list[Pokemon]:
-    """Gets csv data for the TUI screens"""
-    return
 
 
 class PokedexApp(App):
@@ -28,6 +22,7 @@ class PokedexApp(App):
         ansi_color: bool | None = None,
     ):
         super().__init__(driver_class, css_path, watch_css, ansi_color)
+        self.all_records = ()
 
     base_dir = Path(pokedex_tui.__file__).resolve().parent
     tcss_path = base_dir / "styles" / "app.tcss"
@@ -41,15 +36,15 @@ class PokedexApp(App):
     ]
 
     def on_mount(self) -> None:
+        """Load pokemon csv data and push browser screen"""
         try:
             data = sorted(
                 load_pokemon(), key=lambda pokemon: (pokemon.dex_id, pokemon.is_form)
             )
-            print(data)
+            self.all_records = data
             self.push_screen(Browser(name="Browser", data=data))
         except PokedexDataError as e:
-            print(e.message)
-            self.exit()
+            self.exit(message=e.message)
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""

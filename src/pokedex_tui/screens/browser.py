@@ -17,8 +17,8 @@ class Browser(Screen):
     ) -> None:
         super().__init__(name, id, classes)
         self.data = data
-        print(self.data)
 
     def compose(self) -> ComposeResult:
+        """Show Header, Footer and Content"""
         yield Header(name="Pokédex", show_clock=True)
         yield Footer()
