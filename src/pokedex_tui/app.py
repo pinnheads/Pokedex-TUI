@@ -6,6 +6,7 @@ from textual.binding import Binding, BindingType
 from textual.widgets import Footer, Header
 
 import pokedex_tui
+from pokedex_tui.screens import browser
 
 
 class PokedexApp(App):
@@ -25,6 +26,7 @@ class PokedexApp(App):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
         yield Header(name="Pokédex", show_clock=True)
+        yield browser.Browser()
         yield Footer()
 
     def action_toggle_dark(self) -> None:
