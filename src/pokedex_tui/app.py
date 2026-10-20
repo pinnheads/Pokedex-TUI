@@ -1,16 +1,28 @@
 from pathlib import Path
 from typing import ClassVar
 
-from textual.app import App, ComposeResult
+from textual.app import App
 from textual.binding import Binding, BindingType
-from textual.widgets import Footer, Header
+from textual.driver import Driver
+from textual.types import CSSPathType
 
 import pokedex_tui
-from pokedex_tui.screens import browser
+from pokedex_tui.loader import PokedexDataError, load_pokemon
+from pokedex_tui.screens.browser import Browser
 
 
 class PokedexApp(App):
     """A textual app to browse Pokemon stats, with search and filters by name, type and generation"""
+
+    def __init__(
+        self,
+        driver_class: type[Driver] | None = None,
+        css_path: CSSPathType | None = None,
+        watch_css: bool = False,
+        ansi_color: bool | None = None,
+    ):
+        super().__init__(driver_class, css_path, watch_css, ansi_color)
+        self.all_records = ()
 
     base_dir = Path(pokedex_tui.__file__).resolve().parent
     tcss_path = base_dir / "styles" / "app.tcss"
@@ -23,19 +35,19 @@ class PokedexApp(App):
         Binding("q", "quit", "Quit app"),
     ]
 
-    def compose(self) -> ComposeResult:
-        """Create child widgets for the app"""
-        yield Header(name="Pokédex", show_clock=True)
-        yield browser.Browser()
-        yield Footer()
+    def on_mount(self) -> None:
+        """Load pokemon csv data and push browser screen"""
+        try:
+            data = sorted(
+                load_pokemon(), key=lambda pokemon: (pokemon.dex_id, pokemon.is_form)
+            )
+            self.all_records = data
+            self.push_screen(Browser(name="Browser", data=data))
+        except PokedexDataError as e:
+            self.exit(message=e.message)
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
         self.theme = (
             "textual-dark" if self.theme == "textual-light" else "textual-light"
         )
-
-
-if __name__ == "__main__":
-    app = PokedexApp()
-    app.run()

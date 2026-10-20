@@ -93,8 +93,9 @@ async def test_footer_shows_the_quit_key():
     from pokedex_tui.app import PokedexApp
 
     app = PokedexApp()
-    async with app.run_test():
-        app.query_one(Footer)
+    async with app.run_test() as pilot:
+        await pilot.pause()  # let on_mount push the screens
+        app.screen.query_one(Footer)
         keys = {binding.key for _, binding, _, _ in app.active_bindings.values()}
         assert "q" in keys
 
