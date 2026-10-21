@@ -1,0 +1,14 @@
+Screen {
+    layout: grid;
+    grid-size: 1 4;
+}
+
+Search {
+    layout: grid;
+    grid-size: 5 1;
+    grid-columns: 25%;
+}
+
+Box {
+    border: teal round;
+}
