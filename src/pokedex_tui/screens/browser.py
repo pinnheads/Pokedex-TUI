@@ -1,5 +1,5 @@
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Horizontal
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Footer, Header
@@ -23,9 +23,8 @@ class Browser(Screen):
     def compose(self) -> ComposeResult:
         """Show Header, Footer and Content"""
         yield Header(name="Pokédex", show_clock=True)
-        with Vertical():
-            yield Search()
-            yield Box(id="results", title="Results")
+        yield Search()
+        yield Box(id="results", title="Results")
         yield Footer()
 
 
@@ -33,12 +32,11 @@ class Search(Horizontal):
     """Search bar widgets"""
 
     def compose(self) -> ComposeResult:
-        with Horizontal(id="search"):
-            yield Box(title="Search", id="search-bar")
-            yield Box(title="Type", id="type-filter")
-            yield Box(title="and Type", id="type-2-filter")
-            yield Box(title="Gen", id="gen-filter")
-            yield Box(title="Sort", id="sort")
+        yield Box(title="Search", id="search-bar")
+        yield Box(title="Type", id="type-filter")
+        yield Box(title="and Type", id="type-2-filter")
+        yield Box(title="Gen", id="gen-filter")
+        yield Box(title="Sort", id="sort")
 
 
 class Box(Container):
