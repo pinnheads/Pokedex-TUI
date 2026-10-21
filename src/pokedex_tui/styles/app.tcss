@@ -1,0 +1,14 @@
+Search {
+    layout: grid;
+    grid-size: 5 1;
+    grid-columns: 30 1fr 1fr 1fr 1fr;
+    height: 3;
+}
+
+#results {
+    height: 1fr;
+}
+
+Box {
+    border: teal solid;
+}
