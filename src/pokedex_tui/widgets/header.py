@@ -8,6 +8,9 @@ from textual.widgets import Static
 class PokedexHeader(Horizontal):
     """Custom pokedex header with current results output"""
 
+    TITLE = "POKÉDEX"
+    SUBTITLE = "National Dex Browser"
+
     def __init__(
         self,
         *children: Widget,
@@ -16,7 +19,7 @@ class PokedexHeader(Horizontal):
         classes: str | None = None,
         disabled: bool = False,
         markup: bool = True,
-        all_records,
+        all_records: int,
     ) -> None:
         super().__init__(
             *children,
@@ -26,13 +29,11 @@ class PokedexHeader(Horizontal):
             disabled=disabled,
             markup=markup,
         )
-        self.total_pokemon = len(all_records)
-        self.title = "POKÉDEX"
-        self.subtitle = "National Dex Browser"
+        self.total_pokemon = all_records
 
     def compose(self) -> ComposeResult:
-        yield Static(self.title, id="title")
-        yield Static(self.subtitle, id="subtitle")
+        yield Static(self.TITLE, id="title")
+        yield Static(self.SUBTITLE, id="subtitle")
         yield Count(total_count=self.total_pokemon)
 
 
@@ -54,7 +55,7 @@ class Count(Widget):
         classes: str | None = None,
         disabled: bool = False,
         markup: bool = True,
-        total_count: int = 1215,
+        total_count: int,
     ) -> None:
         super().__init__(
             *children,

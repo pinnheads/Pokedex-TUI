@@ -23,7 +23,7 @@ class Browser(Screen):
 
     def compose(self) -> ComposeResult:
         """Show Header, Footer and Content"""
-        yield PokedexHeader(all_records=self.data)
+        yield PokedexHeader(all_records=len(self.data))
         yield Search()
         yield Box(id="results", title="Results")
         yield Footer()

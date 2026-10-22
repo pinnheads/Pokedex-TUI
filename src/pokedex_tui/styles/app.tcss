@@ -8,8 +8,8 @@ PokedexHeader {
     margin: 0 1;
 }
 
-#subtitle {
-    text-opacity: 75%;
+#title, #count {
+    text-style: bold;
 }
 
 #count {
