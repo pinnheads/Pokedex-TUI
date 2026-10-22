@@ -20,9 +20,11 @@ class PokedexApp(App):
         css_path: CSSPathType | None = None,
         watch_css: bool = False,
         ansi_color: bool | None = None,
+        custom_csv: str | Path | None = None,
     ):
         super().__init__(driver_class, css_path, watch_css, ansi_color)
         self.all_records = ()
+        self.custom_csv = custom_csv
 
     base_dir = Path(pokedex_tui.__file__).resolve().parent
     tcss_path = base_dir / "styles" / "app.tcss"
@@ -39,7 +41,8 @@ class PokedexApp(App):
         """Load pokemon csv data and push browser screen"""
         try:
             data = sorted(
-                load_pokemon(), key=lambda pokemon: (pokemon.dex_id, pokemon.is_form)
+                load_pokemon(self.custom_csv),
+                key=lambda pokemon: (pokemon.dex_id, pokemon.is_form),
             )
             self.all_records = data
             self.push_screen(Browser(name="Browser", data=data))
