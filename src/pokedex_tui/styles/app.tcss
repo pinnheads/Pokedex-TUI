@@ -1,3 +1,10 @@
+PokedexHeader {
+    height: 1;
+    dock: top;
+    content-align: center middle;
+    color: white;
+}
+
 Search {
     layout: grid;
     grid-size: 5 1;
