@@ -36,6 +36,10 @@ class PokedexHeader(Horizontal):
         yield Static(self.SUBTITLE, id="subtitle")
         yield Count(total_count=self.total_pokemon)
 
+    def set_header_match_count(self, count: int) -> None:
+        """Update the current match count on the header"""
+        self.query_one(Count).current_count = count
+
 
 class Count(Widget):
     """
