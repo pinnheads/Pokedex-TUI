@@ -19,7 +19,7 @@ class PokedexHeader(Horizontal):
         classes: str | None = None,
         disabled: bool = False,
         markup: bool = True,
-        all_records: int,
+        total: int,
     ) -> None:
         super().__init__(
             *children,
@@ -29,7 +29,7 @@ class PokedexHeader(Horizontal):
             disabled=disabled,
             markup=markup,
         )
-        self.total_pokemon = all_records
+        self.total_pokemon = total
 
     def compose(self) -> ComposeResult:
         yield Static(self.TITLE, id="title")
@@ -46,7 +46,7 @@ class Count(Widget):
     Creates the count widget for the header
 
     To update the current_count use:
-    `self.query_one(Count).current_count = <actual_count>`
+    `set_header_match_count()` from PokedexHeader class
     """
 
     current_count = reactive(0)
