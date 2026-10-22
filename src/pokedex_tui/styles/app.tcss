@@ -1,3 +1,22 @@
+PokedexHeader {
+    height: 1;
+    dock: top;
+}
+
+#title, #subtitle {
+    width: auto;
+    margin: 0 1;
+}
+
+#title, #count {
+    text-style: bold;
+}
+
+#count {
+    width: 1fr;
+    text-align: right;
+}
+
 Search {
     layout: grid;
     grid-size: 5 1;

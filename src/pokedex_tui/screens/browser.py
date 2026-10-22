@@ -2,9 +2,10 @@ from textual.app import ComposeResult
 from textual.containers import Container, Horizontal
 from textual.screen import Screen
 from textual.widget import Widget
-from textual.widgets import Footer, Header
+from textual.widgets import Footer
 
 from pokedex_tui.models import Pokemon
+from pokedex_tui.widgets.header import PokedexHeader
 
 
 class Browser(Screen):
@@ -22,7 +23,7 @@ class Browser(Screen):
 
     def compose(self) -> ComposeResult:
         """Show Header, Footer and Content"""
-        yield Header(name="Pokédex", show_clock=True)
+        yield PokedexHeader(total=len(self.data))
         yield Search()
         yield Box(id="results", title="Results")
         yield Footer()
