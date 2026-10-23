@@ -58,8 +58,11 @@ class Results(Widget):
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
         """Updates marker position based on the highlighted row"""
 
+        if event.row_key.value is None:
+            return
+
         # emit an event on current highlighted row change
-        self.post_message(self.SelectionChanged(f"{event.row_key.value}"))
+        self.post_message(self.SelectionChanged(event.row_key.value))
 
         # current marker change logic
         table = event.data_table
