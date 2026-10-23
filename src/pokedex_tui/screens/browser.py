@@ -1,11 +1,12 @@
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal
+from textual.containers import Horizontal
 from textual.screen import Screen
-from textual.widget import Widget
 from textual.widgets import Footer
 
 from pokedex_tui.models import Pokemon
+from pokedex_tui.widgets.box import Box
 from pokedex_tui.widgets.header import PokedexHeader
+from pokedex_tui.widgets.results import Results
 
 
 class Browser(Screen):
@@ -25,7 +26,7 @@ class Browser(Screen):
         """Show Header, Footer and Content"""
         yield PokedexHeader(total=len(self.data))
         yield Search()
-        yield Box(id="results", title="Results")
+        yield Results(all_records=self.data)
         yield Footer()
 
 
@@ -38,36 +39,3 @@ class Search(Horizontal):
         yield Box(title="and Type", id="type-2-filter")
         yield Box(title="Gen", id="gen-filter")
         yield Box(title="Sort", id="sort")
-
-
-class Box(Container):
-    """Generic container with ability to set title and subtitle"""
-
-    def __init__(
-        self,
-        *children: Widget,
-        name: str | None = None,
-        id: str | None = None,
-        classes: str | None = None,
-        disabled: bool = False,
-        markup: bool = True,
-        title: str | None = None,
-        subtitle: str | None = None,
-    ) -> None:
-        super().__init__(
-            *children,
-            name=name,
-            id=id,
-            classes=classes,
-            disabled=disabled,
-            markup=markup,
-        )
-        self.title = title
-        self.subtitle = subtitle
-
-    def on_mount(self) -> None:
-        """Set title and subtitle if present via instance attribute"""
-        if self.title is not None:
-            self.border_title = self.title
-        if self.subtitle is not None:
-            self.border_subtitle = self.subtitle
