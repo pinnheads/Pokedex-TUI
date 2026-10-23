@@ -30,12 +30,13 @@ class Results(Widget):
 
     def compose(self) -> ComposeResult:
         with Box(title="Results"):
-            yield DataTable()
+            yield DataTable(cursor_type="row")
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
-        table.cursor_type = "row"
-        table.add_column("#")
+        table.focus(scroll_visible=False)
+        table.add_column("", width=1, key="marker")
+        table.add_column("#", key="dex_id")
         table.add_column("Name", width=35)
         table.add_column("Types", width=20)
         table.add_column(Text("Total", justify="right"), width=5)
@@ -46,6 +47,7 @@ class Results(Widget):
         table.clear()
         for pokemon in records:
             table.add_row(
+                ">",
                 f"{pokemon.dex_id:04}",
                 pokemon.display_name,
                 f"{pokemon.types[0]} / {pokemon.types[1]}"
