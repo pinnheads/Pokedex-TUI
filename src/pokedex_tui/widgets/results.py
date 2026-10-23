@@ -1,6 +1,7 @@
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.coordinate import Coordinate
+from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import DataTable
 
@@ -9,6 +10,11 @@ from pokedex_tui.widgets.box import Box
 
 
 class Results(Widget):
+    class SelectionChanged(Message):
+        def __init__(self, key):
+            super().__init__()
+            self.key = key
+
     def __init__(
         self,
         *children: Widget,
@@ -35,6 +41,8 @@ class Results(Widget):
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
         """Updates marker position based on the highlighted row"""
+
+        self.post_message(self.SelectionChanged(event.row_key))
         table = event.data_table
         highlighted_idx = table.get_row_index(event.row_key)
         for row_idx in range(table.row_count):
