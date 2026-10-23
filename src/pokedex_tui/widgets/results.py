@@ -1,5 +1,6 @@
 from rich.text import Text
 from textual.app import ComposeResult
+from textual.coordinate import Coordinate
 from textual.widget import Widget
 from textual.widgets import DataTable
 
@@ -32,6 +33,16 @@ class Results(Widget):
         with Box(title="Results"):
             yield DataTable(cursor_type="row")
 
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
+        """Updates marker position based on the highlighted row"""
+        table = event.data_table
+        highlighted_idx = table.get_row_index(event.row_key)
+        for row_idx in range(table.row_count):
+            if row_idx == highlighted_idx:
+                table.update_cell_at(Coordinate(column=0, row=row_idx), value=">")
+            else:
+                table.update_cell_at(Coordinate(column=0, row=row_idx), value="")
+
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
         table.focus(scroll_visible=False)
@@ -47,7 +58,7 @@ class Results(Widget):
         table.clear()
         for pokemon in records:
             table.add_row(
-                ">",
+                "",
                 f"{pokemon.dex_id:04}",
                 pokemon.display_name,
                 f"{pokemon.types[0]} / {pokemon.types[1]}"
