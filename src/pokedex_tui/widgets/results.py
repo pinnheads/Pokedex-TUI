@@ -1,3 +1,4 @@
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.widget import Widget
 from textual.widgets import DataTable
@@ -28,23 +29,27 @@ class Results(Widget):
         self.all_records = all_records
 
     def compose(self) -> ComposeResult:
-        with Box(id="results", title="Results"):
+        with Box(title="Results"):
             yield DataTable()
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
         table.cursor_type = "row"
         table.add_column("#")
-        table.add_column("Name", width=32)
-        table.add_column("Types", width=32)
-        table.add_column("Total")
-        for pokemon in self.all_records:
+        table.add_column("Name", width=35)
+        table.add_column("Types", width=20)
+        table.add_column(Text("Total", justify="right"), width=5)
+        self.update_records(self.all_records)
+
+    def update_records(self, records: list[Pokemon]) -> None:
+        table = self.query_one(DataTable)
+        for pokemon in records:
             table.add_row(
                 f"{pokemon.dex_id:04}",
                 pokemon.display_name,
                 f"{pokemon.types[0]} / {pokemon.types[1]}"
                 if len(pokemon.types) > 1
                 else f"{pokemon.types[0]}",
-                pokemon.total,
+                Text(str(pokemon.total), justify="right"),
                 key=pokemon.key,
             )

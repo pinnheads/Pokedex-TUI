@@ -26,7 +26,7 @@ class Browser(Screen):
         """Show Header, Footer and Content"""
         yield PokedexHeader(total=len(self.data))
         yield Search()
-        yield Results(all_records=self.data)
+        yield Results(all_records=self.data, id="results")
         yield Footer()
 
 
