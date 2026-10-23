@@ -1,7 +1,6 @@
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.message import Message
-from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import DataTable
 
@@ -11,11 +10,11 @@ from pokedex_tui.widgets.box import Box
 
 class Results(Widget):
     class SelectionChanged(Message):
-        def __init__(self, key):
+        """Event emitted when the selection changes on the results table"""
+
+        def __init__(self, key: str):
             super().__init__()
             self.key = key
-
-    current_marker = reactive(None)
 
     def __init__(
         self,
@@ -36,6 +35,7 @@ class Results(Widget):
             markup=markup,
         )
         self.all_records = all_records
+        self.current_marker = None
 
     def compose(self) -> ComposeResult:
         with Box(title="Results"):
@@ -45,7 +45,7 @@ class Results(Widget):
         """Updates marker position based on the highlighted row"""
 
         # emit an event on current highlighted row change
-        self.post_message(self.SelectionChanged(event.row_key.value))
+        self.post_message(self.SelectionChanged(f"{event.row_key.value}"))
 
         # current marker change logic
         table = event.data_table
