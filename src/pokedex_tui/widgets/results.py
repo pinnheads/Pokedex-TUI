@@ -50,9 +50,9 @@ class Results(Widget):
         # current marker change logic
         table = event.data_table
         highlighted_key = event.row_key
-        table.update_cell(highlighted_key, "marker", ">")
         if self.current_marker is not None:
             table.update_cell(self.current_marker, "marker", "")
+        table.update_cell(highlighted_key, "marker", ">")
         self.current_marker = highlighted_key
 
     def on_mount(self) -> None:
@@ -68,6 +68,7 @@ class Results(Widget):
     def update_records(self, records: list[Pokemon]) -> None:
         table = self.query_one(DataTable)
         table.clear()
+        self.current_marker = None
         for pokemon in records:
             table.add_row(
                 "",
