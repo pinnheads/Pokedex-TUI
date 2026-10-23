@@ -20,7 +20,7 @@ class Results(Widget):
             Binding("k", "cursor_up", "Cursor Up", show=False),
             Binding("home", "scroll_top", "Top", show=False),
             Binding("end", "scroll_bottom", "Bottom", show=False),
-            Binding("down", "cursor_down", "↑↓ Move"),
+            Binding("down", "cursor_down", "Move", key_display="↑↓"),
         ]
 
     class SelectionChanged(Message):
