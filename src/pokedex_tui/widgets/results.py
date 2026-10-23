@@ -43,6 +43,7 @@ class Results(Widget):
 
     def update_records(self, records: list[Pokemon]) -> None:
         table = self.query_one(DataTable)
+        table.clear()
         for pokemon in records:
             table.add_row(
                 f"{pokemon.dex_id:04}",
