@@ -16,10 +16,11 @@ class Results(Widget):
         """Subclass of datatable for extending the default Keybinds"""
 
         BINDINGS: ClassVar[list[BindingType]] = [
-            Binding("j", "cursor_down", "Cursor Down"),
-            Binding("k", "cursor_up", "Cursor Up"),
-            Binding("home", "scroll_top", "Top"),
-            Binding("end", "scroll_bottom", "Bottom"),
+            Binding("j", "cursor_down", "Cursor Down", show=False),
+            Binding("k", "cursor_up", "Cursor Up", show=False),
+            Binding("home", "scroll_top", "Top", show=False),
+            Binding("end", "scroll_bottom", "Bottom", show=False),
+            Binding("down", "cursor_down", "↑↓ Move"),
         ]
 
     class SelectionChanged(Message):
@@ -69,16 +70,22 @@ class Results(Widget):
         self.current_marker = highlighted_key
 
     def on_mount(self) -> None:
+        # Get the current datatable
         table = self.query_one(DataTable)
+        # Focus on the datatable on mount
         table.focus(scroll_visible=False)
+
+        # Add all relevant columns
         table.add_column("", width=1, key="marker")
         table.add_column("#", key="dex_id")
         table.add_column("Name", width=35)
         table.add_column("Types", width=20)
         table.add_column(Text("Total", justify="right"), width=5)
+        # Update records of current pokemon from the csv
         self.update_records(self.all_records)
 
     def update_records(self, records: list[Pokemon]) -> None:
+        """Update records passed in as a list[Pokemon]"""
         table = self.query_one(DataTable)
         table.clear()
         self.current_marker = None

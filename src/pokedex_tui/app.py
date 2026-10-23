@@ -33,8 +33,7 @@ class PokedexApp(App):
     TITLE = "Pokédex"
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("d", "toggle_dark", "Toggle dark mode"),
-        Binding("q", "quit", "Quit app"),
+        Binding("q", "quit", "Quit"),
     ]
 
     def on_mount(self) -> None:
@@ -48,9 +47,3 @@ class PokedexApp(App):
             self.push_screen(Browser(name="Browser", data=data))
         except PokedexDataError as e:
             self.exit(message=e.message)
-
-    def action_toggle_dark(self) -> None:
-        """An action to toggle dark mode."""
-        self.theme = (
-            "textual-dark" if self.theme == "textual-light" else "textual-light"
-        )
