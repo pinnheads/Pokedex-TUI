@@ -1,5 +1,8 @@
+from typing import ClassVar
+
 from rich.text import Text
 from textual.app import ComposeResult
+from textual.binding import Binding, BindingType
 from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import DataTable
@@ -9,6 +12,16 @@ from pokedex_tui.widgets.box import Box
 
 
 class Results(Widget):
+    class ExtendedTable(DataTable):
+        """Subclass of datatable for extending the default Keybinds"""
+
+        BINDINGS: ClassVar[list[BindingType]] = [
+            Binding("j", "cursor_down", "Cursor Down"),
+            Binding("k", "cursor_up", "Cursor Up"),
+            Binding("home", "scroll_top", "Top"),
+            Binding("end", "scroll_bottom", "Bottom"),
+        ]
+
     class SelectionChanged(Message):
         """Event emitted when the selection changes on the results table"""
 
@@ -39,7 +52,7 @@ class Results(Widget):
 
     def compose(self) -> ComposeResult:
         with Box(title="Results"):
-            yield DataTable(cursor_type="row")
+            yield self.ExtendedTable(cursor_type="row")
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
         """Updates marker position based on the highlighted row"""
