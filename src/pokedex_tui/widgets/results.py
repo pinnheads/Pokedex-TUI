@@ -1,7 +1,7 @@
 from rich.text import Text
 from textual.app import ComposeResult
-from textual.coordinate import Coordinate
 from textual.message import Message
+from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import DataTable
 
@@ -14,6 +14,8 @@ class Results(Widget):
         def __init__(self, key):
             super().__init__()
             self.key = key
+
+    current_marker = reactive(None)
 
     def __init__(
         self,
@@ -42,14 +44,16 @@ class Results(Widget):
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
         """Updates marker position based on the highlighted row"""
 
-        self.post_message(self.SelectionChanged(event.row_key))
+        # emit an event on current highlighted row change
+        self.post_message(self.SelectionChanged(event.row_key.value))
+
+        # current marker change logic
         table = event.data_table
-        highlighted_idx = table.get_row_index(event.row_key)
-        for row_idx in range(table.row_count):
-            if row_idx == highlighted_idx:
-                table.update_cell_at(Coordinate(column=0, row=row_idx), value=">")
-            else:
-                table.update_cell_at(Coordinate(column=0, row=row_idx), value="")
+        highlighted_key = event.row_key
+        table.update_cell(highlighted_key, "marker", ">")
+        if self.current_marker is not None:
+            table.update_cell(self.current_marker, "marker", "")
+        self.current_marker = highlighted_key
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
