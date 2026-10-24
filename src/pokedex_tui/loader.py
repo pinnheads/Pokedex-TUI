@@ -142,16 +142,15 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
             ]
             and trimmed_val is not None
         ):
-            try:
+            if str.isascii(trimmed_val) and str.isdigit(trimmed_val):
                 trimmed_val = int(trimmed_val)
-            except ValueError as err:
+                if not whole_number_in_range(trimmed_val, csv_field):
+                    raise PokedexDataError(
+                        f"{csv_field} not in range: {trimmed_val}", line_num
+                    )
+            else:
                 raise PokedexDataError(
-                    f"{csv_field} not in range: {trimmed_val}", line_num
-                ) from err
-
-            if not whole_number_in_range(trimmed_val, csv_field):
-                raise PokedexDataError(
-                    f"{csv_field} not in range: {trimmed_val}", line_num
+                    f"{csv_field} bad value for the column: {trimmed_val}", line_num
                 )
 
         kwargs[poke_field] = trimmed_val
