@@ -152,6 +152,18 @@ def test_key_differs_when_only_the_dex_number_differs(make_pokemon):
     assert make_pokemon(dex_id=6).key != make_pokemon(dex_id=7).key
 
 
+def test_key_cannot_collide_when_spaces_move_between_name_and_form(make_pokemon):
+    # PTI-85: "A B" + "C" and "A" + "B C" must not give the same key.
+    one = make_pokemon(name="A B", form="C")
+    two = make_pokemon(name="A", form="B C")
+    assert one.key != two.key
+
+
+def test_key_for_a_base_form_does_not_contain_the_text_none(make_pokemon):
+    # PTI-85: a missing form is left empty, not written as "None".
+    assert "None" not in make_pokemon(form=None).key
+
+
 # --- Criteria ---------------------------------------------------------------
 
 
