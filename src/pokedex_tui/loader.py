@@ -175,38 +175,35 @@ def load_pokemon(path: str | Path | None = None):
 
     pokemon_list = []
     # Check if path is actually a file
-    if path.is_file():
-        try:
-            with open(path, encoding="utf-8-sig", newline="") as f:
-                reader = csv.DictReader(f)
+    try:
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
 
-                # if all the fields are missing then raise an error
-                if reader.fieldnames is None:
-                    raise PokedexDataError("empty file!!")
+            # if all the fields are missing then raise an error
+            if reader.fieldnames is None:
+                raise PokedexDataError("empty file!!")
 
-                check_headers(reader.fieldnames)
-                keys = set()
+            check_headers(reader.fieldnames)
+            keys = set()
 
-                for row in reader:
-                    check_fields(row, reader.line_num)
+            for row in reader:
+                check_fields(row, reader.line_num)
 
-                    new_pokemon = get_pokemon(row, reader.line_num)
+                new_pokemon = get_pokemon(row, reader.line_num)
 
-                    if new_pokemon.key not in keys:
-                        keys.add(new_pokemon.key)
-                    else:
-                        raise PokedexDataError(
-                            f"Duplicate data: {row}", reader.line_num
-                        )
+                if new_pokemon.key not in keys:
+                    keys.add(new_pokemon.key)
+                else:
+                    raise PokedexDataError(f"Duplicate data: {row}", reader.line_num)
 
-                    pokemon_list.append(new_pokemon)
+                pokemon_list.append(new_pokemon)
 
-            return tuple(pokemon_list)
+        return tuple(pokemon_list)
 
-        except UnicodeDecodeError as e:
-            raise PokedexDataError(message=f"{e} file isn't UTF-8") from e
-    else:
-        raise PokedexDataError(message=f"{path} not found!!")
+    except UnicodeDecodeError as e:
+        raise PokedexDataError(message=f"{e} file isn't UTF-8") from e
+    except OSError as oserr:
+        raise PokedexDataError(message=f"{path} not found!!") from oserr
 
 
 if __name__ == "__main__":
