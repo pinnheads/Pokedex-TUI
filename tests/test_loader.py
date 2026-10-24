@@ -1,5 +1,7 @@
 """Phase 1: reading, cleaning and validating Pokemon.csv."""
 
+import os
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -178,6 +180,9 @@ def test_data_error_is_a_value_error():
         ('6,"Charizard"," ","Fire","Flying",999,78,84,78,109,85,100,1', "Total"),
         ('6,"Charizard"," ","Fire","Flying",448,78,84,78,109,-1,100,1', "Sp. Def"),
         ('6,"Charizard"," ","Fire","Flying",534,78,84,78,109,85,1', "column"),
+        ('1_0,"Charizard"," ","Fire","Flying",534,78,84,78,109,85,100,1', "ID"),
+        ('6,"Charizard"," ","Fire","Flying",534,+78,84,78,109,85,100,1', "HP"),
+        ('6,"Charizard"," ","Fire","Flying",534,٧٨,84,78,109,85,100,1', "HP"),
     ],
     ids=[
         "id-not-a-number",
@@ -193,6 +198,9 @@ def test_data_error_is_a_value_error():
         "total-mismatch",
         "negative-stat",
         "too-few-fields",
+        "id-digit-separator",
+        "stat-plus-sign",
+        "stat-non-ascii-digits",
     ],
 )
 def test_bad_row_raises_with_line_and_column(tmp_path, bad_row, column):
@@ -237,6 +245,73 @@ def test_columns_in_a_different_order_still_load(tmp_path):
     assert (record.dex_id, record.name) == (1, "Bulbasaur")
 
 
+def test_header_from_another_file_names_every_missing_column(tmp_path):
+    # PTI-80: a wrong header is not an "empty file".
+    with pytest.raises(PokedexDataError) as excinfo:
+        load_pokemon(write_csv(tmp_path, "1,2", header="a,b"))
+    message = str(excinfo.value)
+    assert excinfo.value.line == 1
+    assert "empty" not in message.lower()
+    for column in HEADER.replace('"', "").split(","):
+        assert column in message
+
+
+def test_non_number_says_it_is_not_a_whole_number(tmp_path):
+    # PTI-82
+    path = write_csv(
+        tmp_path, '6,"Charizard"," ","Fire","Flying",534,4.5,84,78,109,85,100,1'
+    )
+    with pytest.raises(PokedexDataError) as excinfo:
+        load_pokemon(path)
+    message = str(excinfo.value)
+    assert "whole number" in message
+    assert "HP" in message
+    assert "4.5" in message
+
+
+def test_total_mismatch_names_both_numbers(tmp_path):
+    # PTI-82: Total 999, but the stats add up to 534.
+    path = write_csv(
+        tmp_path, '6,"Charizard"," ","Fire","Flying",999,78,84,78,109,85,100,1'
+    )
+    with pytest.raises(PokedexDataError) as excinfo:
+        load_pokemon(path)
+    assert "999" in str(excinfo.value)
+    assert "534" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    ("bad_row", "column"),
+    [
+        ('6," "," ","Fire","Flying",534,78,84,78,109,85,100,1', "Name"),
+        ('6,"Charizard"," "," ","Flying",534,78,84,78,109,85,100,1', "Type1"),
+    ],
+    ids=["blank-name", "blank-type1"],
+)
+def test_blank_required_value_names_the_column_not_the_whole_row(
+    tmp_path, bad_row, column
+):
+    # PTI-82: the message names the column instead of printing the row dict.
+    with pytest.raises(PokedexDataError) as excinfo:
+        load_pokemon(write_csv(tmp_path, bad_row))
+    message = str(excinfo.value)
+    assert column in message
+    assert "Flying" not in message
+
+
+def test_too_few_fields_names_the_missing_columns(tmp_path):
+    # PTI-82: keeps the word "column" and says which columns are missing.
+    path = write_csv(
+        tmp_path, '6,"Charizard"," ","Fire","Flying",534,78,84,78,109,85,1'
+    )
+    with pytest.raises(PokedexDataError) as excinfo:
+        load_pokemon(path)
+    message = str(excinfo.value)
+    assert excinfo.value.line == 2
+    assert "column" in message
+    assert "Generation" in message
+
+
 def test_missing_file_raises_data_error_naming_the_path(tmp_path):
     missing = tmp_path / "nope.csv"
     with pytest.raises(PokedexDataError) as excinfo:
@@ -261,6 +336,33 @@ def test_non_utf8_file_raises_data_error(tmp_path):
     )
     with pytest.raises(PokedexDataError):
         load_pokemon(path)
+
+
+def test_directory_path_raises_data_error_naming_the_path(tmp_path):
+    # PTI-84
+    folder = tmp_path / "not_a_csv"
+    folder.mkdir()
+    with pytest.raises(PokedexDataError) as excinfo:
+        load_pokemon(folder)
+    assert "not_a_csv" in str(excinfo.value)
+    assert isinstance(excinfo.value.__cause__, OSError)
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32" or os.geteuid() == 0,
+    reason="file permissions can't make a file unreadable here",
+)
+def test_unreadable_file_raises_data_error_naming_the_path(tmp_path):
+    # PTI-84
+    path = write_csv(tmp_path, GOOD_ROW_1)
+    path.chmod(0)
+    try:
+        with pytest.raises(PokedexDataError) as excinfo:
+            load_pokemon(path)
+    finally:
+        path.chmod(0o644)
+    assert "pokemon.csv" in str(excinfo.value)
+    assert isinstance(excinfo.value.__cause__, PermissionError)
 
 
 # =========================================================================
@@ -379,12 +481,12 @@ def test_real_csv_zygarde_rows_are_distinct(all_records):
     assert len({r.key for r in zygardes}) == 3
 
 
-"""errors re-raised by the loader keep the original error as their cause."""
+# =========================================================================
+# Re-raised errors keep the original error as their cause (PTI-83)
+# =========================================================================
 
 
 def test_non_utf8_file_keeps_the_decode_error_as_cause(tmp_path):
-    from pokedex_tui.loader import PokedexDataError, load_pokemon
-
     bad = tmp_path / "latin1.csv"
     bad.write_bytes("ID,Name\n1,Flabébé\n".encode("latin-1"))
 
