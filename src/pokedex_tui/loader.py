@@ -54,25 +54,18 @@ def check_headers(csv_fields) -> None:
     required_fields = list(CSV_FIELD_MAP.keys())
     missing_fields = []
 
-    # TODO: this function definetly needs to be cleaned up
+    # check which fields are missing
+    for field in required_fields:
+        if field not in csv_fields:
+            missing_fields.append(field)
 
-    # Check if the required fields do not match
-    if csv_fields and required_fields != csv_fields:
-        # check which fields are missing
-        for field in required_fields:
-            if field not in csv_fields:
-                missing_fields.append(field)
-
-    # if all the fields are missing then raise an error
-    if missing_fields == required_fields or not csv_fields:
-        raise PokedexDataError("empty file!!")
     # raise error only for missing fields in line 1 of the csv
-    elif missing_fields:
+    if missing_fields:
         raise PokedexDataError(f"Fields missing in CSV file: {missing_fields}", 1)
 
 
 def check_fields(row: dict, line_num: int):
-    """Checks row data for missing/extra fileds and raises Error if found"""
+    """Checks row data for missing/extra fields and raises Error if found"""
 
     # Check for extra fields
     if None in row:
@@ -85,7 +78,7 @@ def check_fields(row: dict, line_num: int):
     if None in row.values():
         missing_fields = [k for k, v in row.items() if v is None]
         raise PokedexDataError(
-            f"column {line_num} has TOO FEW fields. Missing: {missing_fields}", line_num
+            f"Too few fields, missing columns: {missing_fields}", line_num
         )
 
 
@@ -117,7 +110,7 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
         trimmed_val = row[csv_field].strip()
 
         if csv_field in ["Name", "Type1"] and trimmed_val == "":
-            raise PokedexDataError(f"{csv_field} contains blank data: {row}", line_num)
+            raise PokedexDataError(f"{csv_field} is blank", line_num)
 
         # Deal with empty Form and Type2 Values
         if csv_field in ["Form", "Type2"] and trimmed_val == "":
@@ -129,7 +122,7 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
             and trimmed_val is not None
         ):
             raise PokedexDataError(
-                f"{csv_field} is an unrecoginzed type. {trimmed_val}", line_num
+                f"{csv_field} is an unrecognized type. {trimmed_val}", line_num
             )
 
         # Convert ID and stats to int
@@ -148,24 +141,26 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
             ]
             and trimmed_val is not None
         ):
-            try:
+            if trimmed_val.isascii() and trimmed_val.isdigit():
                 trimmed_val = int(trimmed_val)
-            except ValueError as err:
+                if not whole_number_in_range(trimmed_val, csv_field):
+                    raise PokedexDataError(
+                        f"{csv_field} not in range: {trimmed_val}", line_num
+                    )
+            else:
                 raise PokedexDataError(
-                    f"{csv_field} not in range: {trimmed_val}", line_num
-                ) from err
-
-            if not whole_number_in_range(trimmed_val, csv_field):
-                raise PokedexDataError(
-                    f"{csv_field} not in range: {trimmed_val}", line_num
+                    f"{csv_field} value is not a whole number - {trimmed_val}", line_num
                 )
 
         kwargs[poke_field] = trimmed_val
 
     new_pokemon = Pokemon(**kwargs)
+    stats_total = sum(new_pokemon.stats)
 
-    if new_pokemon.total != sum(new_pokemon.stats):
-        raise PokedexDataError("Totals do not match!", line_num)
+    if new_pokemon.total != stats_total:
+        raise PokedexDataError(
+            f"Total is {new_pokemon.total} but stats add up to {stats_total}", line_num
+        )
 
     return new_pokemon
 
@@ -179,34 +174,37 @@ def load_pokemon(path: str | Path | None = None):
 
     pokemon_list = []
     # Check if path is actually a file
-    if path.is_file():
-        try:
-            with open(path, encoding="utf-8-sig", newline="") as f:
-                reader = csv.DictReader(f)
+    try:
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
 
-                check_headers(reader.fieldnames)
-                keys = set()
+            # if all the fields are missing then raise an error
+            if reader.fieldnames is None:
+                raise PokedexDataError("empty file!!")
 
-                for row in reader:
-                    check_fields(row, reader.line_num)
+            check_headers(reader.fieldnames)
+            keys = set()
 
-                    new_pokemon = get_pokemon(row, reader.line_num)
+            for row in reader:
+                check_fields(row, reader.line_num)
 
-                    if new_pokemon.key not in keys:
-                        keys.add(new_pokemon.key)
-                    else:
-                        raise PokedexDataError(
-                            f"Duplicate data: {row}", reader.line_num
-                        )
+                new_pokemon = get_pokemon(row, reader.line_num)
 
-                    pokemon_list.append(new_pokemon)
+                if new_pokemon.key not in keys:
+                    keys.add(new_pokemon.key)
+                else:
+                    raise PokedexDataError(f"Duplicate data: {row}", reader.line_num)
 
-            return tuple(pokemon_list)
+                pokemon_list.append(new_pokemon)
 
-        except UnicodeDecodeError as e:
-            raise PokedexDataError(message=f"{e} file isn't UTF-8") from e
-    else:
-        raise PokedexDataError(message=f"{path} not found!!")
+        return tuple(pokemon_list)
+
+    except UnicodeDecodeError as e:
+        raise PokedexDataError(message=f"{e} file isn't UTF-8") from e
+    except OSError as oserr:
+        raise PokedexDataError(
+            message=f"Can't open {path}: {oserr.strerror}"
+        ) from oserr
 
 
 if __name__ == "__main__":
