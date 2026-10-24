@@ -159,7 +159,7 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
 
     if new_pokemon.total != stats_total:
         raise PokedexDataError(
-            f"Totals is {new_pokemon.total} but stats add up to {stats_total}", line_num
+            f"Total is {new_pokemon.total} but stats add up to {stats_total}", line_num
         )
 
     return new_pokemon
