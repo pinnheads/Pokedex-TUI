@@ -13,4 +13,3 @@ repos:
     hooks:
       # Run the type check
       - id: pyright
-        args: [src/]

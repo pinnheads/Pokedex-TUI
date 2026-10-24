@@ -34,3 +34,7 @@ testpaths = [
 ]
 asyncio_mode = "auto"
 
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+

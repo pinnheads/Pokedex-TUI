@@ -81,8 +81,8 @@ async def test_header_title_and_subtitle():
     app = make_app()
     async with app.run_test(size=SIZE) as pilot:
         await start(app, pilot)
-        assert str(app.screen.query_one("#title").render()) == "POKÉDEX"
-        assert str(app.screen.query_one("#subtitle").render()) == (
+        assert str(app.screen.query_one("#header-title").render()) == "POKÉDEX"
+        assert str(app.screen.query_one("#header-subtitle").render()) == (
             "National Dex Browser"
         )
 

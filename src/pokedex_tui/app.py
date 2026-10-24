@@ -8,6 +8,7 @@ from textual.types import CSSPathType
 
 import pokedex_tui
 from pokedex_tui.loader import PokedexDataError, load_pokemon
+from pokedex_tui.models import Pokemon
 from pokedex_tui.query import default_sort_pokemon
 from pokedex_tui.screens.browser import Browser
 
@@ -24,7 +25,7 @@ class PokedexApp(App):
         custom_csv: str | Path | None = None,
     ):
         super().__init__(driver_class, css_path, watch_css, ansi_color)
-        self.all_records = ()
+        self.all_records: list[Pokemon] = []
         self.custom_csv = custom_csv
 
     base_dir = Path(pokedex_tui.__file__).resolve().parent
