@@ -6,7 +6,6 @@ from textual.binding import Binding, BindingType
 from textual.driver import Driver
 from textual.types import CSSPathType
 
-import pokedex_tui
 from pokedex_tui.loader import PokedexDataError, load_pokemon
 from pokedex_tui.models import Pokemon
 from pokedex_tui.query import default_sort_pokemon
@@ -28,10 +27,7 @@ class PokedexApp(App):
         self.all_records: tuple[Pokemon, ...] = ()
         self.custom_csv = custom_csv
 
-    base_dir = Path(pokedex_tui.__file__).resolve().parent
-    tcss_path = base_dir / "styles" / "app.tcss"
-
-    CSS_PATH = tcss_path
+    CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
 
     BINDINGS: ClassVar[list[BindingType]] = [
