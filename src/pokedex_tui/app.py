@@ -25,7 +25,7 @@ class PokedexApp(App):
         custom_csv: str | Path | None = None,
     ):
         super().__init__(driver_class, css_path, watch_css, ansi_color)
-        self.all_records: list[Pokemon] = []
+        self.all_records: tuple[Pokemon, ...] = ()
         self.custom_csv = custom_csv
 
     base_dir = Path(pokedex_tui.__file__).resolve().parent

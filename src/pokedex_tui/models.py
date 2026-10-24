@@ -1,7 +1,7 @@
 import dataclasses
 from dataclasses import dataclass, field
 
-TYPES: tuple = (
+TYPES: tuple[str, ...] = (
     "Bug",
     "Dark",
     "Dragon",
@@ -21,8 +21,8 @@ TYPES: tuple = (
     "Steel",
     "Water",
 )
-GENERATIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-NO_SECOND_TYPE = "None"
+GENERATIONS: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+NO_SECOND_TYPE: str = "None"
 
 
 @dataclass(frozen=True)
