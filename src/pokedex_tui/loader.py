@@ -40,7 +40,7 @@ class PokedexDataError(ValueError):
         return f"{self.message} Line: {self.line}" if self.line else f"{self.message}"
 
 
-def bundled_csv_path():
+def bundled_csv_path() -> Path:
     """
     Returns the path to the bundled CSV file of pokemon data
     """
@@ -165,7 +165,7 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
     return new_pokemon
 
 
-def load_pokemon(path: str | Path | None = None):
+def load_pokemon(path: str | Path | None = None) -> tuple[Pokemon, ...]:
     """
     Loads the given or bundled csv for pokemon data.
     Returns a tuple of Pokemon records in file order,

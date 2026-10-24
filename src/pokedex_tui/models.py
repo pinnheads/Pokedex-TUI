@@ -81,12 +81,12 @@ class Criteria:
     search: str = field(default="")
     type1: str | None = field(default=None)
     type2: str | None = field(default=None)
-    generations: frozenset = field(default=frozenset([]))
+    generations: frozenset[int] = field(default=frozenset([]))
     hide_forms: bool = field(default=False)
 
     @property
     def is_default(self) -> bool:
         return self == Criteria()
 
-    def replace(self, **changes):
+    def replace(self, **changes) -> Criteria:
         return dataclasses.replace(self, **changes)
