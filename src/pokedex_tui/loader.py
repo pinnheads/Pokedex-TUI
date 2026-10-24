@@ -205,7 +205,3 @@ def load_pokemon(path: str | Path | None = None) -> tuple[Pokemon, ...]:
         raise PokedexDataError(
             message=f"Can't open {path}: {oserr.strerror}"
         ) from oserr
-
-
-if __name__ == "__main__":
-    load_pokemon()
