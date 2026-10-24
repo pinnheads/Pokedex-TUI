@@ -54,20 +54,14 @@ def check_headers(csv_fields) -> None:
     required_fields = list(CSV_FIELD_MAP.keys())
     missing_fields = []
 
-    # TODO: this function definetly needs to be cleaned up
-
     # Check if the required fields do not match
     if csv_fields and required_fields != csv_fields:
         # check which fields are missing
         for field in required_fields:
             if field not in csv_fields:
                 missing_fields.append(field)
-
-    # if all the fields are missing then raise an error
-    if missing_fields == required_fields or not csv_fields:
-        raise PokedexDataError("empty file!!")
     # raise error only for missing fields in line 1 of the csv
-    elif missing_fields:
+    if missing_fields:
         raise PokedexDataError(f"Fields missing in CSV file: {missing_fields}", 1)
 
 
@@ -148,16 +142,15 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
             ]
             and trimmed_val is not None
         ):
-            try:
+            if str.isascii(trimmed_val) and str.isdigit(trimmed_val):
                 trimmed_val = int(trimmed_val)
-            except ValueError as err:
+                if not whole_number_in_range(trimmed_val, csv_field):
+                    raise PokedexDataError(
+                        f"{csv_field} not in range: {trimmed_val}", line_num
+                    )
+            else:
                 raise PokedexDataError(
-                    f"{csv_field} not in range: {trimmed_val}", line_num
-                ) from err
-
-            if not whole_number_in_range(trimmed_val, csv_field):
-                raise PokedexDataError(
-                    f"{csv_field} not in range: {trimmed_val}", line_num
+                    f"{csv_field} bad value for the column: {trimmed_val}", line_num
                 )
 
         kwargs[poke_field] = trimmed_val
@@ -183,6 +176,10 @@ def load_pokemon(path: str | Path | None = None):
         try:
             with open(path, encoding="utf-8-sig", newline="") as f:
                 reader = csv.DictReader(f)
+
+                # if all the fields are missing then raise an error
+                if reader.fieldnames is None:
+                    raise PokedexDataError("empty file!!")
 
                 check_headers(reader.fieldnames)
                 keys = set()

@@ -382,15 +382,6 @@ def test_real_csv_zygarde_rows_are_distinct(all_records):
 """errors re-raised by the loader keep the original error as their cause."""
 
 
-def test_non_numeric_stat_keeps_the_value_error_as_cause(broken_csv):
-    from pokedex_tui.loader import PokedexDataError, load_pokemon
-
-    with pytest.raises(PokedexDataError) as info:
-        load_pokemon(broken_csv)
-
-    assert isinstance(info.value.__cause__, ValueError)
-
-
 def test_non_utf8_file_keeps_the_decode_error_as_cause(tmp_path):
     from pokedex_tui.loader import PokedexDataError, load_pokemon
 
