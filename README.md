@@ -6,10 +6,10 @@ A terminal app for browsing Pokemon stats, with search and filters by name, type
 
 | Columns                                      | Meaning                        | Notes                                                                |
 | -------------------------------------------- | ------------------------------ | -------------------------------------------------------------------- |
-| ID                                           | National Dex Number            | Alternate forms get there own rows so not unique ID's and can repeat |
+| ID                                           | National Dex Number            | Alternate forms get their own rows so not unique ID's and can repeat |
 | Name                                         | Species name                   |                                                                      |
 | Form                                         | Form name eg. "Mega Charizard" |                                                                      |
-| Type 1                                       | Primary type                   | All pokemon have a primary type                                      |
+| Type1                                        | Primary type                   | All pokemon have a primary type                                      |
 | Type2                                        | Secondary type                 |                                                                      |
 | HP, Attack, Defense, Sp. Atk, Sp. Def, Speed | Base Stats                     |                                                                      |
 | Total                                        | Sum of the six base stats      |                                                                      |
