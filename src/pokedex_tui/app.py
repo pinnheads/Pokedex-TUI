@@ -45,4 +45,4 @@ class PokedexApp(App):
             self.all_records = data
             self.push_screen(Browser(name="Browser", data=data))
         except PokedexDataError as e:
-            self.exit(message=e.message)
+            self.exit(message=str(e), return_code=1)

@@ -113,3 +113,57 @@ async def test_app_starts_from_another_folder(tmp_path, monkeypatch):
         await pilot.pause()
 
     assert app.return_code == 0
+
+
+"""a bad CSV makes the app exit with code 1 and the full error text."""
+
+
+async def _run(csv_path, monkeypatch):
+    """Start the app on csv_path and return it plus the messages passed to exit()."""
+    from pokedex_tui.app import PokedexApp
+
+    messages = []
+    real_exit = PokedexApp.exit
+
+    def spy_exit(self, *args, **kwargs):
+        messages.append(str(kwargs.get("message", args[2] if len(args) > 2 else "")))
+        return real_exit(self, *args, **kwargs)
+
+    monkeypatch.setattr(PokedexApp, "exit", spy_exit)
+
+    app = PokedexApp(custom_csv=csv_path)
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+    return app, messages
+
+
+async def test_broken_csv_exits_with_code_1_and_the_line_number(
+    broken_csv, monkeypatch
+):
+    app, messages = await _run(broken_csv, monkeypatch)
+
+    assert app.return_code == 1
+    assert len(messages) == 1
+    assert "Line: 4" in messages[0]
+
+
+@pytest.mark.parametrize("name", ["missing.csv", "empty.csv"])
+async def test_file_errors_exit_with_code_1_without_a_line(tmp_path, monkeypatch, name):
+    path = tmp_path / name
+    if name == "empty.csv":
+        path.write_text("", encoding="utf-8")
+
+    app, messages = await _run(path, monkeypatch)
+
+    assert app.return_code == 1
+    assert len(messages) == 1
+    assert "Line" not in messages[0]
+
+
+async def test_good_csv_does_not_exit(small_csv):
+    from pokedex_tui.app import PokedexApp
+
+    app = PokedexApp(custom_csv=small_csv)
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        assert app.return_code is None
