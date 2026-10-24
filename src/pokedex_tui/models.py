@@ -1,7 +1,7 @@
 import dataclasses
 from dataclasses import dataclass, field
 
-TYPES = (
+TYPES: tuple = (
     "Bug",
     "Dark",
     "Dragon",
@@ -48,11 +48,11 @@ class Pokemon:
         return self.form if self.form else self.name
 
     @property
-    def types(self) -> tuple:
+    def types(self) -> tuple[str] | tuple[str, str]:
         return (self.type1, self.type2) if self.type2 else (self.type1,)
 
     @property
-    def stats(self) -> tuple:
+    def stats(self) -> tuple[int, ...]:
         return (
             self.hp,
             self.attack,

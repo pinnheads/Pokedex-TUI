@@ -32,8 +32,8 @@ class PokedexHeader(Horizontal):
         self.total_pokemon = total
 
     def compose(self) -> ComposeResult:
-        yield Static(self.TITLE, id="title")
-        yield Static(self.SUBTITLE, id="subtitle")
+        yield Static(self.TITLE, id="header-title")
+        yield Static(self.SUBTITLE, id="header-subtitle")
         yield Count(total_count=self.total_pokemon)
 
     def set_header_match_count(self, count: int) -> None:
@@ -55,7 +55,7 @@ class Count(Widget):
         self,
         *children: Widget,
         name: str | None = None,
-        id: str | None = "count",
+        id: str | None = "header-count",
         classes: str | None = None,
         disabled: bool = False,
         markup: bool = True,

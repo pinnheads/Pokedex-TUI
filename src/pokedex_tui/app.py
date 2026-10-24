@@ -8,6 +8,7 @@ from textual.types import CSSPathType
 
 import pokedex_tui
 from pokedex_tui.loader import PokedexDataError, load_pokemon
+from pokedex_tui.query import default_sort_pokemon
 from pokedex_tui.screens.browser import Browser
 
 
@@ -39,10 +40,7 @@ class PokedexApp(App):
     def on_mount(self) -> None:
         """Load pokemon csv data and push browser screen"""
         try:
-            data = sorted(
-                load_pokemon(self.custom_csv),
-                key=lambda pokemon: (pokemon.dex_id, pokemon.is_form),
-            )
+            data = default_sort_pokemon(load_pokemon(self.custom_csv))
             self.all_records = data
             self.push_screen(Browser(name="Browser", data=data))
         except PokedexDataError as e:
