@@ -150,10 +150,10 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
         ):
             try:
                 trimmed_val = int(trimmed_val)
-            except ValueError:
+            except ValueError as err:
                 raise PokedexDataError(
                     f"{csv_field} not in range: {trimmed_val}", line_num
-                )
+                ) from err
 
             if not whole_number_in_range(trimmed_val, csv_field):
                 raise PokedexDataError(
@@ -181,7 +181,7 @@ def load_pokemon(path: str | Path | None = None):
     # Check if path is actually a file
     if path.is_file():
         try:
-            with open(path, "r", encoding="utf-8-sig", newline="") as f:
+            with open(path, encoding="utf-8-sig", newline="") as f:
                 reader = csv.DictReader(f)
 
                 check_headers(reader.fieldnames)
@@ -204,7 +204,7 @@ def load_pokemon(path: str | Path | None = None):
             return tuple(pokemon_list)
 
         except UnicodeDecodeError as e:
-            raise PokedexDataError(message=f"{e} file isn't UTF-8")
+            raise PokedexDataError(message=f"{e} file isn't UTF-8") from e
     else:
         raise PokedexDataError(message=f"{path} not found!!")
 

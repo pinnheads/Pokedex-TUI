@@ -5,6 +5,7 @@ indent-width = 4
 [lint]
 # select = [...]  # See the Default Rules page for the full listing.
 ignore = []
+extend-select = ["B", "UP", "I", "SIM"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
