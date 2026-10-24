@@ -6,6 +6,7 @@ Names these tests expect (rename here if you chose different ones):
 """
 
 import csv
+import io
 from importlib.metadata import entry_points
 from importlib.resources import files
 
@@ -40,15 +41,15 @@ def test_bundled_csv_is_package_data():
     csv_file = files("pokedex_tui") / "data" / "Pokemon.csv"
 
     assert csv_file.is_file()
-    with csv_file.open(encoding="utf-8-sig", newline="") as handle:
-        assert next(csv.reader(handle)) == EXPECTED_HEADER
+    handle = io.StringIO(csv_file.read_text(encoding="utf-8-sig"), newline="")
+    assert next(csv.reader(handle)) == EXPECTED_HEADER
 
 
 def test_bundled_csv_has_all_rows():
     csv_file = files("pokedex_tui") / "data" / "Pokemon.csv"
 
-    with csv_file.open(encoding="utf-8-sig", newline="") as handle:
-        rows = list(csv.reader(handle))
+    handle = io.StringIO(csv_file.read_text(encoding="utf-8-sig"), newline="")
+    rows = list(csv.reader(handle))
 
     assert len(rows) == 1 + 1215  # header plus every Pokémon
 

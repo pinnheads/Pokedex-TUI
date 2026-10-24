@@ -8,6 +8,8 @@ from textual.types import CSSPathType
 
 import pokedex_tui
 from pokedex_tui.loader import PokedexDataError, load_pokemon
+from pokedex_tui.models import Pokemon
+from pokedex_tui.query import default_sort_pokemon
 from pokedex_tui.screens.browser import Browser
 
 
@@ -23,7 +25,7 @@ class PokedexApp(App):
         custom_csv: str | Path | None = None,
     ):
         super().__init__(driver_class, css_path, watch_css, ansi_color)
-        self.all_records = ()
+        self.all_records: tuple[Pokemon, ...] = ()
         self.custom_csv = custom_csv
 
     base_dir = Path(pokedex_tui.__file__).resolve().parent
@@ -39,10 +41,7 @@ class PokedexApp(App):
     def on_mount(self) -> None:
         """Load pokemon csv data and push browser screen"""
         try:
-            data = sorted(
-                load_pokemon(self.custom_csv),
-                key=lambda pokemon: (pokemon.dex_id, pokemon.is_form),
-            )
+            data = default_sort_pokemon(load_pokemon(self.custom_csv))
             self.all_records = data
             self.push_screen(Browser(name="Browser", data=data))
         except PokedexDataError as e:

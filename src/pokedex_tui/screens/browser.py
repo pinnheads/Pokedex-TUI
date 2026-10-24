@@ -14,7 +14,7 @@ class Browser(Screen):
 
     def __init__(
         self,
-        data: list[Pokemon],
+        data: tuple[Pokemon, ...],
         name: str | None = None,
         id: str | None = None,
         classes: str | None = None,

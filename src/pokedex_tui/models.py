@@ -1,7 +1,7 @@
 import dataclasses
 from dataclasses import dataclass, field
 
-TYPES = (
+TYPES: tuple[str, ...] = (
     "Bug",
     "Dark",
     "Dragon",
@@ -21,8 +21,8 @@ TYPES = (
     "Steel",
     "Water",
 )
-GENERATIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-NO_SECOND_TYPE = "None"
+GENERATIONS: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+NO_SECOND_TYPE: str = "None"
 
 
 @dataclass(frozen=True)
@@ -48,11 +48,11 @@ class Pokemon:
         return self.form if self.form else self.name
 
     @property
-    def types(self) -> tuple:
+    def types(self) -> tuple[str] | tuple[str, str]:
         return (self.type1, self.type2) if self.type2 else (self.type1,)
 
     @property
-    def stats(self) -> tuple:
+    def stats(self) -> tuple[int, ...]:
         return (
             self.hp,
             self.attack,

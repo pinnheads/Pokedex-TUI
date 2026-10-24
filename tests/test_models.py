@@ -192,7 +192,7 @@ def test_generations_hold_a_set_of_allowed_values():
 def test_criteria_are_immutable():
     c = Criteria()
     with pytest.raises((AttributeError, dataclasses.FrozenInstanceError, TypeError)):
-        c.search = "pika"
+        setattr(c, "search", "pika")  # noqa: B010  pyright rejects a direct assignment
 
 
 def test_criteria_compare_and_hash_by_value():

@@ -377,3 +377,27 @@ def test_real_csv_zygarde_rows_are_distinct(all_records):
     zygardes = [r for r in all_records if r.dex_id == 718]
     assert len(zygardes) == 3
     assert len({r.key for r in zygardes}) == 3
+
+
+"""errors re-raised by the loader keep the original error as their cause."""
+
+
+def test_non_numeric_stat_keeps_the_value_error_as_cause(broken_csv):
+    from pokedex_tui.loader import PokedexDataError, load_pokemon
+
+    with pytest.raises(PokedexDataError) as info:
+        load_pokemon(broken_csv)
+
+    assert isinstance(info.value.__cause__, ValueError)
+
+
+def test_non_utf8_file_keeps_the_decode_error_as_cause(tmp_path):
+    from pokedex_tui.loader import PokedexDataError, load_pokemon
+
+    bad = tmp_path / "latin1.csv"
+    bad.write_bytes("ID,Name\n1,Flabébé\n".encode("latin-1"))
+
+    with pytest.raises(PokedexDataError) as info:
+        load_pokemon(bad)
+
+    assert isinstance(info.value.__cause__, UnicodeDecodeError)

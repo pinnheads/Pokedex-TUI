@@ -81,8 +81,8 @@ async def test_header_title_and_subtitle():
     app = make_app()
     async with app.run_test(size=SIZE) as pilot:
         await start(app, pilot)
-        assert str(app.screen.query_one("#title").render()) == "POKÉDEX"
-        assert str(app.screen.query_one("#subtitle").render()) == (
+        assert str(app.screen.query_one("#header-title").render()) == "POKÉDEX"
+        assert str(app.screen.query_one("#header-subtitle").render()) == (
             "National Dex Browser"
         )
 
@@ -197,7 +197,7 @@ async def test_update_records_replaces_the_rows():
     app = make_app()
     async with app.run_test(size=SIZE) as pilot:
         await start(app, pilot)
-        app.screen.query_one(Results).update_records(list(app.all_records[:9]))
+        app.screen.query_one(Results).update_records(app.all_records[:9])
         await pilot.pause()
         assert table_of(app).row_count == 9
 
@@ -239,7 +239,7 @@ async def test_marker_survives_a_refill_that_keeps_the_marked_row():
         table = table_of(app)
         await pilot.press("down")  # Ivysaur
         await pilot.pause()
-        app.screen.query_one(Results).update_records(list(app.all_records[1:10]))
+        app.screen.query_one(Results).update_records(app.all_records[1:10])
         await pilot.pause()
         assert marker_rows(table) == [table.cursor_row]
 
@@ -253,7 +253,7 @@ async def test_moving_after_a_refill_that_drops_the_marked_row():
         table = table_of(app)
         await pilot.press("down")
         await pilot.pause()
-        app.screen.query_one(Results).update_records(list(app.all_records[100:110]))
+        app.screen.query_one(Results).update_records(app.all_records[100:110])
         await pilot.pause()
         await pilot.press("down")
         await pilot.pause()

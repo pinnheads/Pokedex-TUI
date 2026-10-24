@@ -38,7 +38,7 @@ class Results(Widget):
         classes: str | None = None,
         disabled: bool = False,
         markup: bool = True,
-        all_records: list[Pokemon],
+        all_records: tuple[Pokemon, ...],
     ) -> None:
         super().__init__(
             *children,
@@ -87,7 +87,7 @@ class Results(Widget):
         # Update records of current pokemon from the csv
         self.update_records(self.all_records)
 
-    def update_records(self, records: list[Pokemon]) -> None:
+    def update_records(self, records: tuple[Pokemon, ...]) -> None:
         """Update records passed in as a list[Pokemon]"""
         table = self.query_one(DataTable)
         table.clear()
