@@ -21,7 +21,7 @@ TYPES: tuple[str, ...] = (
     "Steel",
     "Water",
 )
-GENERATIONS: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+GENERATIONS: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8, 9)
 NO_SECOND_TYPE: str = "None"
 
 
