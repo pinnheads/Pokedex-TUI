@@ -68,7 +68,7 @@ class Pokemon:
 
     @property
     def key(self) -> str:
-        return f"{self.dex_id} {self.name} {self.form}"
+        return f"{self.dex_id}|{self.name}|{self.form or ''}"
 
 
 @dataclass(frozen=True)
