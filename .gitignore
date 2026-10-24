@@ -6,7 +6,7 @@ dist/
 wheels/
 *.egg-info
 
-# pytest and ruff caches in 
+# pytest and ruff caches
 .pytest_cache/
 .ruff_cache/
 
