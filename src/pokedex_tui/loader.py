@@ -66,7 +66,7 @@ def check_headers(csv_fields) -> None:
 
 
 def check_fields(row: dict, line_num: int):
-    """Checks row data for missing/extra fileds and raises Error if found"""
+    """Checks row data for missing/extra fields and raises Error if found"""
 
     # Check for extra fields
     if None in row:
@@ -123,7 +123,7 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
             and trimmed_val is not None
         ):
             raise PokedexDataError(
-                f"{csv_field} is an unrecoginzed type. {trimmed_val}", line_num
+                f"{csv_field} is an unrecognized type. {trimmed_val}", line_num
             )
 
         # Convert ID and stats to int
@@ -150,15 +150,18 @@ def get_pokemon(row: dict, line_num: int) -> Pokemon:
                     )
             else:
                 raise PokedexDataError(
-                    f"{csv_field} bad value for the column: {trimmed_val}", line_num
+                    f"{csv_field} value is not a whole number - {trimmed_val}", line_num
                 )
 
         kwargs[poke_field] = trimmed_val
 
     new_pokemon = Pokemon(**kwargs)
+    stats_total = sum(new_pokemon.stats)
 
     if new_pokemon.total != sum(new_pokemon.stats):
-        raise PokedexDataError("Totals do not match!", line_num)
+        raise PokedexDataError(
+            f"Totals is {new_pokemon.total} but stats add up to {stats_total}", line_num
+        )
 
     return new_pokemon
 
