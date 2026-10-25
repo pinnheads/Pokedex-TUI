@@ -29,5 +29,5 @@ FilterBar {
 }
 
 Box {
-    border: teal solid;
+    border: solid;
 }
