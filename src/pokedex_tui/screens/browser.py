@@ -13,17 +13,17 @@ class Browser(Screen):
 
     def __init__(
         self,
-        data: tuple[Pokemon, ...],
+        all_records: tuple[Pokemon, ...],
         name: str | None = None,
         id: str | None = None,
         classes: str | None = None,
     ) -> None:
         super().__init__(name, id, classes)
-        self.data = data
+        self.all_records = all_records
 
     def compose(self) -> ComposeResult:
         """Show Header, Footer and Content"""
-        yield PokedexHeader(total=len(self.data))
+        yield PokedexHeader(total=len(self.all_records))
         yield FilterBar()
-        yield Results(all_records=self.data, id="results")
+        yield Results(all_records=self.all_records, id="results")
         yield Footer()

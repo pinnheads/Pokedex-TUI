@@ -37,8 +37,8 @@ class PokedexApp(App):
     def on_mount(self) -> None:
         """Load pokemon csv data and push browser screen"""
         try:
-            data = default_sort_pokemon(load_pokemon(self.csv_path))
-            self.all_records = data
-            self.push_screen(Browser(name="Browser", data=data))
+            all_records = default_sort_pokemon(load_pokemon(self.csv_path))
+            self.all_records = all_records
+            self.push_screen(Browser(all_records=all_records))
         except PokedexDataError as e:
             self.exit(message=str(e), return_code=1)
