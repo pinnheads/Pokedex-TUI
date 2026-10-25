@@ -24,12 +24,5 @@ class Box(Container):
             disabled=disabled,
             markup=markup,
         )
-        self.title = title
-        self.subtitle = subtitle
-
-    def on_mount(self) -> None:
-        """Set title and subtitle if present via instance attribute"""
-        if self.title is not None:
-            self.border_title = self.title
-        if self.subtitle is not None:
-            self.border_subtitle = self.subtitle
+        self.border_title = title if title is not None else ""
+        self.border_subtitle = subtitle if subtitle is not None else ""
