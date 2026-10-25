@@ -21,11 +21,11 @@ class PokedexApp(App):
         css_path: CSSPathType | None = None,
         watch_css: bool = False,
         ansi_color: bool | None = None,
-        custom_csv: str | Path | None = None,
+        csv_path: str | Path | None = None,
     ):
         super().__init__(driver_class, css_path, watch_css, ansi_color)
         self.all_records: tuple[Pokemon, ...] = ()
-        self.custom_csv = custom_csv
+        self.csv_path = csv_path
 
     CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
@@ -37,7 +37,7 @@ class PokedexApp(App):
     def on_mount(self) -> None:
         """Load pokemon csv data and push browser screen"""
         try:
-            data = default_sort_pokemon(load_pokemon(self.custom_csv))
+            data = default_sort_pokemon(load_pokemon(self.csv_path))
             self.all_records = data
             self.push_screen(Browser(name="Browser", data=data))
         except PokedexDataError as e:

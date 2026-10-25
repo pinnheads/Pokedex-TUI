@@ -131,7 +131,7 @@ async def _run(csv_path, monkeypatch):
 
     monkeypatch.setattr(PokedexApp, "exit", spy_exit)
 
-    app = PokedexApp(custom_csv=csv_path)
+    app = PokedexApp(csv_path=csv_path)
     async with app.run_test(size=(100, 30)) as pilot:
         await pilot.pause()
     return app, messages
@@ -163,7 +163,7 @@ async def test_file_errors_exit_with_code_1_without_a_line(tmp_path, monkeypatch
 async def test_good_csv_does_not_exit(small_csv):
     from pokedex_tui.app import PokedexApp
 
-    app = PokedexApp(custom_csv=small_csv)
+    app = PokedexApp(csv_path=small_csv)
     async with app.run_test(size=(100, 30)) as pilot:
         await pilot.pause()
         assert app.return_code is None

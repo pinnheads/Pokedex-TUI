@@ -3,12 +3,12 @@
 Each test starts the real app headless at 100 x 30 and drives it with keys.
 
 Names these tests expect (rename here if you change them):
-- pokedex_tui.app.PokedexApp(custom_csv=...): the App, with an optional CSV path.
+- pokedex_tui.app.PokedexApp(csv_path=...): the App, with an optional CSV path.
 - pokedex_tui.widgets.header: PokedexHeader with set_header_match_count(n),
   and Count, which renders "N of M".
 - pokedex_tui.widgets.results.Results: holds the DataTable, has
   update_records(records) and posts Results.SelectionChanged(key).
-- pokedex_tui.screens.browser.Search: the filter bar.
+- pokedex_tui.screens.browser.FilterBar: the filter bar.
 - Table columns, left to right: marker (key "marker"), #, Name, Types, Total.
 """
 
@@ -27,7 +27,7 @@ MARKER, DEX, NAME, TYPES, TOTAL = range(5)
 def make_app(csv_path=None):
     from pokedex_tui.app import PokedexApp
 
-    return PokedexApp(custom_csv=csv_path)
+    return PokedexApp(csv_path=csv_path)
 
 
 def table_of(app):
@@ -104,7 +104,7 @@ async def test_header_match_count_can_be_updated():
 async def test_layout_regions_at_100_by_30():
     from textual.widgets import Footer
 
-    from pokedex_tui.screens.browser import Search
+    from pokedex_tui.screens.browser import FilterBar
     from pokedex_tui.widgets.header import PokedexHeader
     from pokedex_tui.widgets.results import Results
 
@@ -113,7 +113,7 @@ async def test_layout_regions_at_100_by_30():
         await start(app, pilot)
         screen = app.screen
         header = screen.query_one(PokedexHeader).region
-        search = screen.query_one(Search).region
+        search = screen.query_one(FilterBar).region
         results = screen.query_one(Results).region
         footer = screen.query_one(Footer).region
 
