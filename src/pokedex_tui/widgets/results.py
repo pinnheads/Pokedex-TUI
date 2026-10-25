@@ -12,6 +12,8 @@ from pokedex_tui.widgets.box import Box
 
 
 class Results(Widget):
+    """Displays match results for the pokemon data"""
+
     class ExtendedTable(DataTable):
         """Subclass of datatable for extending the default Keybinds"""
 
@@ -55,7 +57,7 @@ class Results(Widget):
         with Box(title="Results"):
             yield self.ExtendedTable(cursor_type="row")
 
-    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         """Updates marker position based on the highlighted row"""
 
         if event.row_key.value is None:
@@ -88,7 +90,7 @@ class Results(Widget):
         self.update_records(self.all_records)
 
     def update_records(self, records: tuple[Pokemon, ...]) -> None:
-        """Update records passed in as a list[Pokemon]"""
+        """Update records passed in as a tuple[Pokemon, ...]"""
         table = self.query_one(DataTable)
         table.clear()
         self.current_marker = None
