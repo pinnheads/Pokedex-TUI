@@ -10,6 +10,7 @@ from pokedex_tui.loader import PokedexDataError, load_pokemon
 from pokedex_tui.models import Pokemon
 from pokedex_tui.query import default_sort_pokemon
 from pokedex_tui.screens.browser import Browser
+from pokedex_tui.theme import APP_THEME
 
 
 class PokedexApp(App):
@@ -36,6 +37,8 @@ class PokedexApp(App):
 
     def on_mount(self) -> None:
         """Load pokemon csv data and push browser screen"""
+        self.register_theme(APP_THEME)
+        self.theme = "pokedex"
         try:
             all_records = default_sort_pokemon(load_pokemon(self.csv_path))
             self.all_records = all_records

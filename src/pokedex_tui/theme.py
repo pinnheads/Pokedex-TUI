@@ -2,6 +2,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from textual.theme import Theme
+
 
 @dataclass(frozen=True)
 class Interface:
@@ -70,3 +72,55 @@ STAT_BANDS: tuple[tuple[int, str], ...] = (
 
 SCALE_MAX: int = 255
 BAR_WIDTH: int = 18
+
+APP_THEME: Theme = Theme(
+    name="pokedex",
+    primary=PALETTE.accent,
+    accent=PALETTE.accent,
+    secondary=PALETTE.selection,
+    warning=PALETTE.accent,
+    error=PALETTE.error,
+    success=PALETTE.success,
+    foreground=PALETTE.text,
+    background=PALETTE.background,
+    surface=PALETTE.surface,
+    panel=PALETTE.raised,
+    dark=True,
+    ansi=False,
+    variables={
+        # our own variables
+        "header-bar": PALETTE.header_bar,
+        "header-text": PALETTE.header_text,
+        "key-cap-text": PALETTE.key_cap_text,
+        "selection": PALETTE.selection,
+        "selection-text": PALETTE.selection_text,
+        "bar-track": PALETTE.bar_track,
+        "raised": PALETTE.raised,
+        # override textual defaults
+        "text": PALETTE.text,
+        "text-muted": PALETTE.muted_text,
+        "border": PALETTE.accent,
+        "border-blurred": PALETTE.border,
+        "block-cursor-background": PALETTE.selection,
+        "block-cursor-foreground": PALETTE.selection_text,
+        "block-cursor-blurred-background": PALETTE.selection,
+        "block-cursor-blurred-foreground": PALETTE.selection_text,
+        "block-hover-background": PALETTE.background,
+        "footer-background": PALETTE.raised,
+        "footer-item-background": PALETTE.raised,
+        "footer-key-background": PALETTE.accent,
+        "footer-key-foreground": PALETTE.key_cap_text,
+        "footer-description-background": PALETTE.raised,
+        "footer-description-foreground": PALETTE.text,
+        "input-cursor-background": PALETTE.text,
+        "input-cursor-foreground": PALETTE.background,
+        "input-selection-background": PALETTE.selection,
+        "input-selection-foreground": PALETTE.selection_text,
+        "scrollbar-background": PALETTE.background,
+        "scrollbar": PALETTE.border,
+        "scrollbar-active": PALETTE.border,
+        "scrollbar-hover": PALETTE.border,
+        "scrollbar-corner-color": PALETTE.background,
+        "surface-active": PALETTE.surface,
+    },
+)
