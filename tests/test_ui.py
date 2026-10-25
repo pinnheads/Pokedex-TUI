@@ -8,7 +8,7 @@ Names these tests expect (rename here if you change them):
   and Count, which renders "N of M".
 - pokedex_tui.widgets.results.Results: holds the DataTable, has
   update_records(records) and posts Results.SelectionChanged(key).
-- pokedex_tui.screens.browser.FilterBar: the filter bar.
+- pokedex_tui.widgets.filter_bar.FilterBar: the filter bar.
 - Table columns, left to right: marker (key "marker"), #, Name, Types, Total.
 """
 
@@ -104,7 +104,7 @@ async def test_header_match_count_can_be_updated():
 async def test_layout_regions_at_100_by_30():
     from textual.widgets import Footer
 
-    from pokedex_tui.screens.browser import FilterBar
+    from pokedex_tui.widgets.filter_bar import FilterBar
     from pokedex_tui.widgets.header import PokedexHeader
     from pokedex_tui.widgets.results import Results
 
