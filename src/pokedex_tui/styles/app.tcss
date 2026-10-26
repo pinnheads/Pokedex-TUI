@@ -1,6 +1,8 @@
 PokedexHeader {
     height: 1;
     dock: top;
+    background: $header-bar;
+    color: $header-text;
 }
 
 #header-title, #header-subtitle {
