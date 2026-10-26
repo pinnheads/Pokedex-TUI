@@ -224,3 +224,89 @@ def test_bar_scale_and_width():
 @pytest.mark.parametrize(("where", "colour"), sorted(all_colours().items()))
 def test_every_colour_is_on_the_256_grid(where, colour):
     assert on_256_grid(colour), f"{where} = {colour} is off the 256-colour grid"
+
+
+# --- C3 (PTI-40): stat band and bar length rules ----------------------------
+#
+# Names these tests expect (rename here if you chose different ones):
+# - band_colour(value): the STAT_BANDS colour for a base stat.
+# - filled_cells(value): how many of the BAR_WIDTH cells are filled, scaled
+#   against SCALE_MAX, rounded to the nearest cell, with at least one filled
+#   cell for any stat of 1 or more.
+#
+# They are imported inside each test so the C1 tests above still run before
+# these two functions exist.
+
+BAND_EDGES = [
+    (1, "#ff5f5f"),
+    (59, "#ff5f5f"),
+    (60, "#ffaf00"),
+    (89, "#ffaf00"),
+    (90, "#5fafff"),
+    (119, "#5fafff"),
+    (120, "#afffff"),
+    (255, "#afffff"),
+]
+
+
+@pytest.mark.parametrize(("value", "colour"), BAND_EDGES)
+def test_band_colour_at_the_band_edges(value, colour):
+    from pokedex_tui.theme import band_colour
+
+    assert band_colour(value).lower() == colour
+
+
+def test_band_colour_follows_stat_bands():
+    from pokedex_tui.theme import band_colour
+
+    for limit, colour in STAT_BANDS:
+        assert band_colour(limit) == colour
+        if limit > 0:
+            assert band_colour(limit - 1) != colour
+
+
+FILLED_CELLS = [
+    (255, 18),  # the maximum fills the whole bar
+    (128, 9),  # about half
+    (127, 9),  # 8.96 rounds up
+    (240, 17),  # 16.94 rounds up
+    (247, 17),  # 17.44 rounds down
+    (248, 18),  # 17.51 rounds up
+    (22, 2),  # 1.55 rounds up
+    (21, 1),  # 1.48 rounds down
+    (14, 1),  # 0.99 rounds up
+    (5, 1),  # Shuckle's Speed: 0.35 would round to 0, but the minimum is 1
+    (1, 1),  # Shedinja's HP
+]
+
+
+@pytest.mark.parametrize(("value", "cells"), FILLED_CELLS)
+def test_filled_cells(value, cells):
+    from pokedex_tui.theme import filled_cells
+
+    assert filled_cells(value) == cells
+
+
+def test_filled_cells_never_shrinks_as_the_stat_grows():
+    from pokedex_tui.theme import filled_cells
+
+    counts = [filled_cells(value) for value in range(1, SCALE_MAX + 1)]
+    assert counts == sorted(counts)
+    assert min(counts) == 1
+    assert max(counts) == BAR_WIDTH
+
+
+def test_filled_cells_returns_an_int():
+    from pokedex_tui.theme import filled_cells
+
+    assert type(filled_cells(100)) is int
+
+
+def test_every_real_stat_gets_a_band_and_a_bar(all_records):
+    from pokedex_tui.theme import band_colour, filled_cells
+
+    band_colours = {colour for _, colour in STAT_BANDS}
+    for pokemon in all_records:
+        for value in pokemon.stats:
+            assert band_colour(value) in band_colours
+            assert 1 <= filled_cells(value) <= BAR_WIDTH
