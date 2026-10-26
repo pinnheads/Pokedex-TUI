@@ -27,6 +27,8 @@ class PokedexApp(App):
         super().__init__(driver_class, css_path, watch_css, ansi_color)
         self.all_records: tuple[Pokemon, ...] = ()
         self.csv_path = csv_path
+        self.register_theme(APP_THEME)
+        self.theme = "pokedex"
 
     CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
@@ -38,8 +40,6 @@ class PokedexApp(App):
 
     def on_mount(self) -> None:
         """Load pokemon csv data and push browser screen"""
-        self.register_theme(APP_THEME)
-        self.theme = "pokedex"
         try:
             all_records = default_sort_pokemon(load_pokemon(self.csv_path))
             self.all_records = all_records
