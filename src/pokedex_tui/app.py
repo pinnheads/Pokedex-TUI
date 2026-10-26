@@ -30,6 +30,7 @@ class PokedexApp(App):
 
     CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
+    ENABLE_COMMAND_PALETTE = False
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
