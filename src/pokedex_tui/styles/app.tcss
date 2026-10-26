@@ -1,7 +1,6 @@
 PokedexHeader {
     height: 1;
     dock: top;
-    background-tint: 0%;
 }
 
 #header-title, #header-subtitle {
@@ -34,16 +33,18 @@ ExtendedTable {
     background-tint: 0%;
 }
 
-.datatable--header {
+ExtendedTable > .datatable--header {
     background: $background;
     text-style: bold;
+    color: $text-muted;
+    background-tint: 0%;
 }
 
-.datatable--even-row {
+ExtendedTable > .datatable--even-row {
     background: $background;
 }
 
-.datatable--header-hover, .datatable--header-cursor {
+ExtendedTable > .datatable--header-hover, ExtendedTable > .datatable--header-cursor {
     background: $background;
 }
 
