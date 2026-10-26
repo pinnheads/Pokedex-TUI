@@ -70,25 +70,21 @@ STAT_BANDS: tuple[tuple[int, str], ...] = (
     (120, "#afffff"),
 )
 
-
-def band_colour(base_stat: int) -> str:
-    """Given a base stat, returns which stat band the stat belongs to"""
-    if base_stat < 60:
-        return STAT_BANDS[0][1]
-    elif base_stat >= 60 and base_stat <= 89:
-        return STAT_BANDS[1][1]
-    elif base_stat >= 90 and base_stat <= 119:
-        return STAT_BANDS[2][1]
-    else:
-        return STAT_BANDS[3][1]
-
-
 SCALE_MAX: int = 255
 BAR_WIDTH: int = 18
 
 
+def band_colour(base_stat: int) -> str:
+    """Given a base stat, returns which stat band the stat belongs to"""
+    final_colour = ""
+    for stat, colour in STAT_BANDS:
+        if base_stat >= stat:
+            final_colour = colour
+    return final_colour
+
+
 def filled_cells(base_stat: int) -> int:
-    """Given a base stat, returns how many of the 18 cells are to be filled"""
+    """Given a base stat, returns how many of the bar's cells are to be filled"""
     cells = round((base_stat * BAR_WIDTH) / SCALE_MAX)
     if cells < 1:
         return 1
