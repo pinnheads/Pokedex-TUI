@@ -76,9 +76,9 @@ BAR_WIDTH: int = 18
 
 def band_colour(base_stat: int) -> str:
     """Given a base stat, returns which stat band the stat belongs to"""
-    final_colour = ""
-    for stat, colour in STAT_BANDS:
-        if base_stat >= stat:
+    final_colour = STAT_BANDS[0][1]
+    for limit, colour in STAT_BANDS:
+        if base_stat >= limit:
             final_colour = colour
     return final_colour
 
