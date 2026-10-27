@@ -30,6 +30,10 @@ FilterBar {
     height: 1fr;
 }
 
+TypeBadge {
+    width: 8;
+}
+
 ExtendedTable {
     background: $background;
     background-tint: 0%;
