@@ -5,6 +5,10 @@ PokedexHeader {
     color: $header-text;
 }
 
+#type-gen {
+    height: 1;
+}
+
 #header-title, #header-subtitle {
     width: auto;
     margin: 0 1;

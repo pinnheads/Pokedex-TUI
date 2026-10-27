@@ -2,16 +2,17 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import ClassVar
 
-from textual.app import App
+from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.driver import Driver
+from textual.screen import Screen
 from textual.types import CSSPathType
 
 from pokedex_tui.loader import PokedexDataError, load_pokemon
 from pokedex_tui.models import Pokemon
 from pokedex_tui.query import default_sort_pokemon, total_ranks
-from pokedex_tui.screens.browser import Browser
 from pokedex_tui.theme import APP_THEME
+from pokedex_tui.widgets.stats_panel import StatsPanel
 
 
 class PokedexApp(App):
@@ -46,6 +47,18 @@ class PokedexApp(App):
             all_records = default_sort_pokemon(load_pokemon(self.csv_path))
             self.total_ranks = total_ranks(all_records)
             self.all_records = all_records
-            self.push_screen(Browser(all_records=all_records))
+            # self.push_screen(Browser(all_records=all_records))
+            self.push_screen(ThrowawayScreen())
         except PokedexDataError as e:
             self.exit(message=str(e), return_code=1)
+
+
+class ThrowawayScreen(Screen):
+    """A throwaway screen used only for testing individual tests. Remove once all phases are done."""
+
+    all_records = default_sort_pokemon(load_pokemon())
+    single_pokemon = all_records[7]
+    total_rank = total_ranks(all_records)[single_pokemon.key]
+
+    def compose(self) -> ComposeResult:
+        yield StatsPanel(pokemon=self.single_pokemon, rank=self.total_rank)
