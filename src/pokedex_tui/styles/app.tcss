@@ -31,7 +31,8 @@ FilterBar {
 }
 
 TypeBadge {
-    width: 8;
+    width: 10;
+    text-align: center;
 }
 
 ExtendedTable {
