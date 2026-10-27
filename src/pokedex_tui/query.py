@@ -7,7 +7,7 @@ from pokedex_tui.models import Pokemon
 def default_sort_pokemon(
     unsorted_pokemon_data: Iterable[Pokemon],
 ) -> tuple[Pokemon, ...]:
-    """Sorts a iterable list of pokemons by dex id and form"""
+    """Sorts Pokemon by Dex number, base form first"""
     return tuple(
         sorted(
             unsorted_pokemon_data,
@@ -18,7 +18,7 @@ def default_sort_pokemon(
 
 def total_ranks(records: Iterable[Pokemon]) -> Mapping[str, int]:
     """
-    Builds a look from each Pokemon's key to its rank by Total.
+    Builds a lookup from each Pokemon's key to its rank by Total.
     Two equal totals share a rank.
     """
     # sort the data based on totals (reverse order)
@@ -26,7 +26,7 @@ def total_ranks(records: Iterable[Pokemon]) -> Mapping[str, int]:
         records, key=lambda pokemon: pokemon.total, reverse=True
     )
     prev_pokemon: Pokemon | None = None
-    ranks: Mapping[str, int] = {}
+    ranks: dict[str, int] = {}
     current_rank = 1
     for pokemon in totals_sorted_data:
         # rank sharing logic

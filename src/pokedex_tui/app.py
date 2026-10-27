@@ -30,7 +30,7 @@ class PokedexApp(App):
         self.total_ranks: Mapping[str, int] = {}
         self.csv_path = csv_path
         self.register_theme(APP_THEME)
-        self.theme = "pokedex"
+        self.theme = APP_THEME.name
 
     CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
