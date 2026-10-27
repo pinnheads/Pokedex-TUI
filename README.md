@@ -1,3 +1,5 @@
+[![CI](https://github.com/pinnheads/Pokedex-TUI/actions/workflows/ci.yml/badge.svg)](https://github.com/pinnheads/Pokedex-TUI/actions/workflows/ci.yml)
+
 ## Pokedex TUI
 
 A terminal app for browsing Pokemon stats, with search and filters by name, type and generation. Built with Python and Textual, reading an offline CSV bundled with the app
