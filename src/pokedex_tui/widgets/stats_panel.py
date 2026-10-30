@@ -1,5 +1,3 @@
-from rich.style import Style
-from rich.text import Text
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Static
@@ -11,7 +9,7 @@ class StatsPanel(Vertical):
     StatsPanel {
         background: $raised;
         height: auto;
-        border: solid $border;
+        border: solid $border-blurred;
     }
     """
 
@@ -20,6 +18,6 @@ class StatsPanel(Vertical):
         yield Static(classes="name-line")
         yield Static(classes="form-line")
         yield Horizontal(classes="types-container")
-        yield Static(classes="stat-row")
+        yield Static(classes="stat-rows")
         yield Static(classes="total-row")
-        yield Static(Text(text="enter: full details", style=Style(color="$muted")))
+        yield Static("enter: full details", classes="hint-line")
