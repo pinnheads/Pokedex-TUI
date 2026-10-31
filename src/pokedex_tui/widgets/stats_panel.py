@@ -80,3 +80,18 @@ class StatsPanel(Vertical):
                 .append(text=remaining_cells_text)
             )
         self.query_one(selector=".stat-rows", expect_type=Static).content = rows
+
+        # total row
+        total_label = Text(text="Total", style=Style(color=PALETTE.muted_text))
+        total_label.set_length(8)
+        total_value = Text(
+            text=f"{pokemon.total:03}",
+            style=Style(color=PALETTE.accent, bold=True),
+            justify="right",
+        )
+        total_value.set_length(3)
+        rank_line = Text(
+            text=f"rank #{rank} of {total_count}", style=Style(color=PALETTE.muted_text)
+        )
+        total_line = total_label.append(text=total_value).append(text=rank_line)
+        self.query_one(selector=".total-row", expect_type=Static).content = total_line
