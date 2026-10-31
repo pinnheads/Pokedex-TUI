@@ -57,13 +57,14 @@ class StatsPanel(Vertical):
         rows = Text("")
         for label, stat in zip(LABELS, pokemon.stats, strict=True):
             # add two newlines every time except for the first line
-            if not rows:
+            if rows:
                 rows.append("\n\n")
             label_text = Text(text=label, style=Style(color=PALETTE.muted_text))
             label_text.set_length(8)
             stat_value_text = Text(
-                text=f"{stat:03}", justify="right", style=Style(bold=True)
+                text=f"{stat}", justify="right", style=Style(bold=True)
             )
+            stat_value_text.align(align="right", width=3)
             stat_value_text.set_length(3)
             filled_cells_text = Text(
                 text="█" * filled_cells(stat), style=Style(color=band_colour(stat))
@@ -82,16 +83,17 @@ class StatsPanel(Vertical):
         self.query_one(selector=".stat-rows", expect_type=Static).content = rows
 
         # total row
-        total_label = Text(text="Total", style=Style(color=PALETTE.muted_text))
+        total_label = Text(text="Total ", style=Style(color=PALETTE.muted_text))
         total_label.set_length(8)
         total_value = Text(
-            text=f"{pokemon.total:03}",
+            text=f"{pokemon.total}",
             style=Style(color=PALETTE.accent, bold=True),
             justify="right",
         )
-        total_value.set_length(3)
+        total_value.align("right", 4)
         rank_line = Text(
-            text=f"rank #{rank} of {total_count}", style=Style(color=PALETTE.muted_text)
+            text=f" rank #{rank} of {total_count}",
+            style=Style(color=PALETTE.muted_text),
         )
         total_line = total_label.append(text=total_value).append(text=rank_line)
         self.query_one(selector=".total-row", expect_type=Static).content = total_line
