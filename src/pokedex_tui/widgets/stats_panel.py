@@ -8,6 +8,8 @@ from pokedex_tui.models import Pokemon
 from pokedex_tui.theme import BAR_WIDTH, PALETTE, band_colour, filled_cells
 from pokedex_tui.widgets.type_badge import TypeBadge
 
+LABELS = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
+
 
 class StatsPanel(Vertical):
     BORDER_TITLE = "Details"
@@ -52,13 +54,15 @@ class StatsPanel(Vertical):
         types_container.mount(Static(f"Gen {pokemon.generation}", classes="generation"))
 
         # stat rows
-        stats_labels = ("HP", "Attack", "Defense", "Sp. Attack", "Sp. Defense", "Speed")
         rows = Text("")
-        for label, stat in zip(stats_labels, pokemon.stats, strict=True):
+        for label, stat in zip(LABELS, pokemon.stats, strict=True):
+            # add two newlines every time except for the first line
+            if not rows:
+                rows.append("\n\n")
             label_text = Text(text=label, style=Style(color=PALETTE.muted_text))
             label_text.set_length(8)
             stat_value_text = Text(
-                text=f"{stat} ", justify="right", style=Style(bold=True)
+                text=f"{stat:03}", justify="right", style=Style(bold=True)
             )
             stat_value_text.set_length(3)
             filled_cells_text = Text(
@@ -68,11 +72,10 @@ class StatsPanel(Vertical):
                 text="░" * (BAR_WIDTH - filled_cells(stat)),
                 style=Style(color=PALETTE.bar_track),
             )
-            if label != "Speed":
-                remaining_cells_text.append("\n\n")
             (
                 rows.append(text=label_text)
                 .append(text=stat_value_text)
+                .append(text=" ")
                 .append(text=filled_cells_text)
                 .append(text=remaining_cells_text)
             )
