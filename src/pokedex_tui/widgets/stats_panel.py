@@ -43,7 +43,7 @@ class StatsPanel(Vertical):
         )
         # remove all childern of the horizontal container
         types_container.remove_children()
-        for type in pokemon.types:
-            types_container.mount(TypeBadge(type_name=type))
+        for type_name in pokemon.types:
+            types_container.mount(TypeBadge(type_name=type_name))
         # mount gen name to the same container
         types_container.mount(Static(f"Gen {pokemon.generation}", classes="generation"))

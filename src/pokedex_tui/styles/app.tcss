@@ -10,6 +10,7 @@ PokedexHeader {
 }
 
 .generation {
+    color: $text-muted;
     height: 1;
     width: auto;
     margin-left: 1;
