@@ -6,6 +6,7 @@ from textual.widgets import Static
 
 from pokedex_tui.models import Pokemon
 from pokedex_tui.theme import PALETTE
+from pokedex_tui.widgets.type_badge import TypeBadge
 
 
 class StatsPanel(Vertical):
@@ -34,5 +35,15 @@ class StatsPanel(Vertical):
         ).append(text=pokemon.name, style=Style(bold=True))
         # form line
         self.query_one(selector=".form-line", expect_type=Static).content = Text(
-            text=pokemon.form if pokemon.form else "", style=Style(color=PALETTE.accent)
+            text=pokemon.form or "", style=Style(color=PALETTE.accent)
         )
+        # types line
+        types_container = self.query_one(
+            selector=".types-container", expect_type=Horizontal
+        )
+        # remove all childern of the horizontal container
+        types_container.remove_children()
+        for type in pokemon.types:
+            types_container.mount(TypeBadge(type_name=type))
+        # mount gen name to the same container
+        types_container.mount(Static(f"Gen {pokemon.generation}", classes="generation"))
