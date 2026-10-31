@@ -22,7 +22,7 @@ class StatsPanel(Vertical):
     """
 
     def compose(self) -> ComposeResult:
-        """Adds this widgets to screen, data is added later"""
+        """Adds these widgets to screen, data is added later"""
         yield Static(classes="name-line")
         yield Static(classes="form-line")
         yield Horizontal(classes="types-container")
@@ -30,7 +30,7 @@ class StatsPanel(Vertical):
         yield Static(classes="total-row")
         yield Static("enter: full details", classes="hint-line")
 
-    def show_pokemon(self, pokemon: Pokemon, rank: int, total_count: int):
+    def show_pokemon(self, pokemon: Pokemon, rank: int, total_count: int) -> None:
 
         # name line
         self.query_one(selector=".name-line", expect_type=Static).content = Text(
@@ -61,11 +61,8 @@ class StatsPanel(Vertical):
                 rows.append("\n\n")
             label_text = Text(text=label, style=Style(color=PALETTE.muted_text))
             label_text.set_length(8)
-            stat_value_text = Text(
-                text=f"{stat}", justify="right", style=Style(bold=True)
-            )
+            stat_value_text = Text(text=f"{stat}", style=Style(bold=True))
             stat_value_text.align(align="right", width=3)
-            stat_value_text.set_length(3)
             filled_cells_text = Text(
                 text="█" * filled_cells(stat), style=Style(color=band_colour(stat))
             )
@@ -88,7 +85,6 @@ class StatsPanel(Vertical):
         total_value = Text(
             text=f"{pokemon.total}",
             style=Style(color=PALETTE.accent, bold=True),
-            justify="right",
         )
         total_value.align("right", 4)
         rank_line = Text(
