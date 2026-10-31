@@ -32,3 +32,7 @@ class StatsPanel(Vertical):
         self.query_one(selector=".name-line", expect_type=Static).content = Text(
             text=f"{pokemon.dex_id:04} ", style=Style(color=PALETTE.muted_text)
         ).append(text=pokemon.name, style=Style(bold=True))
+        # form line
+        self.query_one(selector=".form-line", expect_type=Static).content = Text(
+            text=pokemon.form if pokemon.form else "", style=Style(color=PALETTE.accent)
+        )
