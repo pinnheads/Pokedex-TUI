@@ -2,7 +2,13 @@ import unicodedata
 from collections.abc import Iterable, Mapping
 from types import MappingProxyType
 
-from pokedex_tui.models import DEFAULT_SORT, Criteria, Pokemon, SortOrder
+from pokedex_tui.models import (
+    DEFAULT_SORT,
+    NO_SECOND_TYPE,
+    Criteria,
+    Pokemon,
+    SortOrder,
+)
 
 
 def default_sort_pokemon(
@@ -52,6 +58,7 @@ def filter_and_sort(
         record
         for record in all_records
         if _match_search_and_record(record=record, search_text=normalised_search)
+        and _match_type_and_record(record=record, criteria=criteria)
     )
 
     return default_sort_pokemon(search_filtered_records)
@@ -74,10 +81,47 @@ def normalise(pokemon_name: str) -> str:
 
 
 def _match_search_and_record(record: Pokemon, search_text: str) -> bool:
+    # empty search
     if not search_text:
         return True
 
+    # search text in pokemon name
     if search_text in normalise(record.name):
         return True
 
+    # search text in pokemon form
     return bool(record.form and search_text in normalise(record.form))
+
+
+def _match_type_and_record(record: Pokemon, criteria: Criteria) -> bool:
+    # both slots none
+    if not criteria.type1 and not criteria.type2:
+        return True
+
+    # a type plus NO_SECOND_TYPE
+    if (
+        criteria.type1
+        and criteria.type2 == NO_SECOND_TYPE
+        and criteria.type1 == record.type1
+        and record.type2 is None
+    ):
+        return True
+
+    # either slot set or both slot same
+    if (
+        criteria.type1 and criteria.type1 in record.types and criteria.type2 is None
+    ) or (criteria.type2 and criteria.type2 in record.types and criteria.type1 is None):
+        return True
+
+    # both slot set and both in record
+    if (
+        (criteria.type1 and criteria.type2)
+        and (criteria.type1 in record.types)
+        and (criteria.type2 in record.types)
+    ):
+        return True
+
+    return bool(
+        (criteria.type1 is None and criteria.type2 == NO_SECOND_TYPE)
+        and len(record.types) == 1
+    )
