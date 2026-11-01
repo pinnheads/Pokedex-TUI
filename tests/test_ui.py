@@ -45,7 +45,8 @@ def count_text(app):
 
 
 def row(table, index):
-    return table.get_row_at(index)
+    """One table row as plain strings (Rich Text cells become their text)."""
+    return [str(cell) for cell in table.get_row_at(index)]
 
 
 def selected_name(table):
@@ -207,18 +208,19 @@ async def test_types_are_written_out():
     async with app.run_test(size=SIZE) as pilot:
         await start(app, pilot)
         table = table_of(app)
-        assert str(row(table, 0)[TYPES]) == "Grass / Poison"  # Bulbasaur
+        # C8: the types are badges with the name in capitals.
+        assert row(table, 0)[TYPES].split() == ["GRASS", "POISON"]  # Bulbasaur
         charmander = next(
             i for i in range(table.row_count) if row(table, i)[NAME] == "Charmander"
         )
-        assert str(row(table, charmander)[TYPES]) == "Fire"
+        assert row(table, charmander)[TYPES].split() == ["FIRE"]
 
 
 async def test_total_is_right_aligned():
     app = make_app()
     async with app.run_test(size=SIZE) as pilot:
         await start(app, pilot)
-        total = row(table_of(app), 0)[TOTAL]
+        total = table_of(app).get_row_at(0)[TOTAL]
         assert isinstance(total, Text)
         assert total.justify == "right"
         assert str(total) == "318"
@@ -745,3 +747,174 @@ async def test_panel_with_no_color_keeps_bars_numbers_and_brackets(
         line = row_text(rows[line_index(rows, label)])
         assert f"{value:>3}" in line
         assert sum(line.count(c) for c in (FULL, SHADE)) == BAR_WIDTH
+
+
+# --- Results table look (C8) -----------------------------------------------------------
+#
+# These read the real screen at 100 x 30. The first rows of the table are
+# Bulbasaur (selected at start), Ivysaur, Venusaur, Mega Venusaur, Charmander.
+
+BADGE_WIDTH = 10
+
+
+async def table_screen_rows(app):
+    """The rendered table rows (inside the table, scrollbar excluded)."""
+    table = table_of(app)
+    region = table.region
+    width = region.width - table.scrollbar_size_vertical
+    return [cells[:width] for cells in screen_cells(app, region)]
+
+
+def runs_with_background(cells, colour):
+    """(start, length) of each run of cells whose background is colour."""
+    runs, start = [], None
+    for x, (_, style) in enumerate([*cells, (" ", None)]):
+        inside = style is not None and hex_of(style.bgcolor) == colour
+        if inside and start is None:
+            start = x
+        elif not inside and start is not None:
+            runs.append((start, x - start))
+            start = None
+    return runs
+
+
+async def test_whole_table_fits_inside_the_results_box():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        table = table_of(app)
+        usable = table.size.width - table.scrollbar_size_vertical
+
+        assert table.virtual_size.width <= usable
+        assert not table.show_horizontal_scrollbar
+        rows = await table_screen_rows(app)
+        assert row_text(rows[0]).rstrip().endswith("318")  # Bulbasaur's Total
+
+
+async def test_badges_sit_in_fixed_slots_and_total_lines_up():
+    from pokedex_tui.theme import TYPE_STYLES
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        rows = await table_screen_rows(app)
+        venusaur, charmander = rows[2], rows[4]
+
+        (grass,) = runs_with_background(venusaur, TYPE_STYLES["Grass"].badge)
+        (poison,) = runs_with_background(venusaur, TYPE_STYLES["Poison"].badge)
+        (fire,) = runs_with_background(charmander, TYPE_STYLES["Fire"].badge)
+        assert grass[1] == poison[1] == fire[1] == BADGE_WIDTH
+        assert poison[0] == grass[0] + BADGE_WIDTH + 1  # one space between
+        assert fire[0] == grass[0]  # first slot is in the same place
+
+        venusaur_text = row_text(venusaur).rstrip()
+        charmander_text = row_text(charmander).rstrip()
+        assert venusaur_text.endswith("525") and charmander_text.endswith("309")
+        assert len(venusaur_text) == len(charmander_text)
+
+
+async def test_headings_line_up_with_the_columns_and_have_a_divider():
+    from pokedex_tui.theme import PALETTE, TYPE_STYLES
+    from pokedex_tui.widgets.box import Box
+    from pokedex_tui.widgets.results import Results
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        table = table_of(app)
+        box = app.screen.query_one(Results).query_one(Box)
+        inside = box.content_region
+        above = screen_cells(
+            app, inside.intersection(inside._replace(height=table.region.y - inside.y))
+        )
+        heading = next(r for r in above if "Name" in row_text(r))
+        divider = above[-1]
+        first = (await table_screen_rows(app))[2]  # Venusaur, not selected
+        offset = table.region.x - inside.x
+        heading_text = row_text(heading)
+        first_text = " " * offset + row_text(first)
+
+        # Each heading starts where its column starts.
+        assert heading_text.index("#") == first_text.index("0003")
+        assert heading_text.index("Name") == first_text.index("Venusaur")
+        (grass,) = runs_with_background(first, TYPE_STYLES["Grass"].badge)
+        assert heading_text.index("Types") == offset + grass[0]
+        # Total is right-aligned over the Total values.
+        end = len(first_text.rstrip())
+        assert heading_text.rstrip().endswith("Total")
+        assert len(heading_text.rstrip()) == end
+
+        for char, style in heading:
+            if char.strip():
+                assert hex_of(style.color) == PALETTE.muted_text
+                assert style.bold
+        line = [style for char, style in divider if char == "\u2500"]
+        assert len(line) >= end
+        assert {hex_of(style.color) for style in line} == {PALETTE.border}
+
+
+async def test_selected_row_is_white_and_bold_and_badges_keep_colours():
+    from pokedex_tui.theme import PALETTE, TYPE_STYLES
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        rows = await table_screen_rows(app)
+        selected, other = rows[0], rows[1]
+        badges = {
+            x
+            for name in ("Grass", "Poison")
+            for start_at, length in runs_with_background(
+                selected, TYPE_STYLES[name].badge
+            )
+            for x in range(start_at, start_at + length)
+        }
+        assert len(badges) == 2 * BADGE_WIDTH
+
+        for x, (char, style) in enumerate(selected):
+            if x in badges:
+                continue
+            assert hex_of(style.bgcolor) == PALETTE.selection
+            if char.strip():
+                assert hex_of(style.color) == PALETTE.selection_text, char
+                assert style.bold, char
+
+        text = row_text(selected)
+        assert text.lstrip().startswith(">")
+        dex_at = row_text(other).index("0002")
+        assert hex_of(other[dex_at][1].color) == PALETTE.muted_text
+
+
+async def test_moving_the_cursor_puts_the_old_row_back_to_muted():
+    from pokedex_tui.theme import PALETTE
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("down")
+        await pilot.pause()
+        rows = await table_screen_rows(app)
+        old, new = rows[0], rows[1]
+
+        old_dex = row_text(old).index("0001")
+        new_dex = row_text(new).index("0002")
+        assert hex_of(old[old_dex][1].color) == PALETTE.muted_text
+        assert not old[old_dex][1].bold
+        assert hex_of(new[new_dex][1].color) == PALETTE.selection_text
+
+
+async def test_table_with_no_color_shows_brackets_and_reverse_selected_row(
+    monkeypatch,
+):
+    monkeypatch.setenv("NO_COLOR", "1")
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        table = table_of(app)
+        assert row(table, 0)[TYPES].split() == ["[GRASS]", "[POISON]"]
+
+        rows = await table_screen_rows(app)
+        selected = [style for char, style in rows[0] if char.strip()]
+        assert selected and all(style.reverse for style in selected)
+        others = [style for char, style in rows[1] if char.strip()]
+        assert not any(style.reverse for style in others)
