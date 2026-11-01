@@ -30,6 +30,7 @@ class Browser(Screen):
         self.ranks = ranks
 
     def on_results_selection_changed(self, event: Results.SelectionChanged) -> None:
+        """Updates the stats panel details based on selection change"""
         self.selected_key = event.key
         self.query_one(StatsPanel).show_pokemon(
             pokemon=self.lookup_table[self.selected_key],
