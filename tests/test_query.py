@@ -299,6 +299,15 @@ def test_search_finds_names_containing_the_text(query_records):
 # --- Q3: name search (PTI-39) ---------------------------------------------------
 
 
+def test_search_finds_names_containing_the_text(query_records):
+    assert _names(_run(query_records, search="char")) == [
+        ("Charmander", None),
+        ("Charmeleon", None),
+        ("Charizard", None),
+        ("Charizard", "Mega Charizard X"),
+    ]
+
+
 def test_search_matches_the_form_name(query_records):
     assert _names(_run(query_records, search="ALOLAN")) == [("Raichu", "Alolan Raichu")]
 
