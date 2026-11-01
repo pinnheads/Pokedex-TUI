@@ -918,3 +918,91 @@ async def test_table_with_no_color_shows_brackets_and_reverse_selected_row(
         assert selected and all(style.reverse for style in selected)
         others = [style for char, style in rows[1] if char.strip()]
         assert not any(style.reverse for style in others)
+
+
+# --- Selection drives the Details pane (C9) ---------------------------------------------
+
+
+def panel_name_line(app):
+    from pokedex_tui.widgets.stats_panel import StatsPanel
+
+    panel = app.screen.query_one(StatsPanel)
+    return str(panel.query_one(".name-line").render())
+
+
+async def test_details_pane_shows_the_first_row_at_startup():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.pause()
+        assert panel_name_line(app) == "0001 Bulbasaur"
+
+
+@pytest.mark.parametrize(
+    ("keys", "expected"),
+    [
+        (["down"], "0002 Ivysaur"),
+        (["down", "down", "up"], "0002 Ivysaur"),
+        (["j", "j"], "0003 Venusaur"),
+        (["end"], "1025 Pecharunt"),
+        (["end", "home"], "0001 Bulbasaur"),
+        (["pagedown", "pageup"], "0001 Bulbasaur"),
+    ],
+)
+async def test_details_pane_follows_the_cursor(keys, expected):
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        for key in keys:
+            await pilot.press(key)
+        await pilot.pause()
+        assert panel_name_line(app) == expected
+
+
+async def test_details_pane_follows_each_step_through_the_charmander_line():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        table = table_of(app)
+        charmander = next(
+            i for i in range(table.row_count) if row(table, i)[NAME] == "Charmander"
+        )
+        for _ in range(charmander):
+            await pilot.press("down")
+        seen = []
+        for _ in range(3):
+            await pilot.pause()
+            seen.append(panel_name_line(app))
+            await pilot.press("down")
+        assert seen == ["0004 Charmander", "0005 Charmeleon", "0006 Charizard"]
+
+
+async def test_details_pane_follows_a_mouse_click():
+    from pokedex_tui.widgets.stats_panel import StatsPanel
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        table = table_of(app)
+        await pilot.click(table, offset=(10, 3))  # fourth row: Mega Venusaur
+        await pilot.pause()
+        assert table.cursor_row == 3
+        panel = app.screen.query_one(StatsPanel)
+        assert panel_name_line(app) == "0003 Venusaur"
+        assert str(panel.query_one(".form-line").render()) == "Mega Venusaur"
+
+
+async def test_details_pane_shows_the_rank_across_the_whole_pokedex(all_records):
+    from pokedex_tui.query import total_ranks
+    from pokedex_tui.widgets.stats_panel import StatsPanel
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("down")
+        await pilot.pause()
+        panel = app.screen.query_one(StatsPanel)
+        total_line = str(panel.query_one(".total-row").render())
+        ivysaur = next(p for p in all_records if p.name == "Ivysaur")
+        rank = total_ranks(all_records)[ivysaur.key]
+        assert total_line.endswith(f"rank #{rank} of 1215")
