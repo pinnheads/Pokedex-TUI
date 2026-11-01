@@ -75,6 +75,10 @@ ExtendedTable > .datatable--even-row {
     background: $background;
 }
 
+ExtendedTable > .datatable--cursor {
+    text-style: bold;
+}
+
 ExtendedTable > .datatable--header-hover, ExtendedTable > .datatable--header-cursor {
     background: $background;
 }
