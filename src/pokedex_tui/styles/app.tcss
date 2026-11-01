@@ -21,6 +21,12 @@ Results {
     height: 1fr;
 }
 
+Results .headings {
+    color: $text-muted;
+    text-style: bold;
+    border-bottom: solid $border-blurred;
+}
+
 StatsPanel {
     background: $raised;
     height: 1fr;
@@ -62,6 +68,7 @@ TypeBadge {
 ExtendedTable {
     background: $background;
     background-tint: 0%;
+    scrollbar-size-vertical: 1;
 }
 
 ExtendedTable > .datatable--header {
