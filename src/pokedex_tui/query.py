@@ -122,6 +122,6 @@ def _match_type_and_record(record: Pokemon, criteria: Criteria) -> bool:
         return True
 
     return bool(
-        (criteria.type1 == None and criteria.type2 == NO_SECOND_TYPE)
+        (criteria.type1 is None and criteria.type2 == NO_SECOND_TYPE)
         and len(record.types) == 1
     )
