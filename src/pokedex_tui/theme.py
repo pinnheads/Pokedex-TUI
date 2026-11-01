@@ -115,6 +115,8 @@ APP_THEME: Theme = Theme(
         "bar-track": PALETTE.bar_track,
         "raised": PALETTE.raised,
         # override textual defaults
+        "accent": PALETTE.accent,
+        "error": PALETTE.error,
         "text": PALETTE.text,
         "text-muted": PALETTE.muted_text,
         "border": PALETTE.accent,
@@ -134,11 +136,13 @@ APP_THEME: Theme = Theme(
         "input-cursor-foreground": PALETTE.background,
         "input-selection-background": PALETTE.selection,
         "input-selection-foreground": PALETTE.selection_text,
+        "primary": PALETTE.accent,
         "scrollbar-background": PALETTE.background,
         "scrollbar": PALETTE.border,
         "scrollbar-active": PALETTE.border,
         "scrollbar-hover": PALETTE.border,
         "scrollbar-corner-color": PALETTE.background,
         "surface-active": PALETTE.surface,
+        "warning": PALETTE.accent,
     },
 )
