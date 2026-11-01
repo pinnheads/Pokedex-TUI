@@ -1,5 +1,6 @@
 from typing import ClassVar
 
+from rich.align import AlignMethod
 from rich.style import Style
 from rich.text import Text
 from textual.app import ComposeResult
@@ -11,7 +12,19 @@ from textual.widgets import DataTable, Static
 from pokedex_tui.models import Pokemon
 from pokedex_tui.theme import PALETTE
 from pokedex_tui.widgets.box import Box
-from pokedex_tui.widgets.type_badge import create_type_badge
+from pokedex_tui.widgets.type_badge import BADGE_WIDTH, type_badges_text
+
+# Spaces the table puts on each side of every cell
+CELL_PADDING = 1
+
+# (key, heading, width, alignment) for each table column, left to right
+COLUMNS: tuple[tuple[str, str, int, AlignMethod], ...] = (
+    ("marker", "", 1, "left"),
+    ("dex_id", "#", 4, "left"),
+    ("name", "Name", 16, "left"),
+    ("types", "Types", 2 * BADGE_WIDTH + 1, "left"),
+    ("total", "Total", 5, "right"),
+)
 
 
 class Results(Widget):
@@ -58,29 +71,18 @@ class Results(Widget):
 
     def compose(self) -> ComposeResult:
         with Box(title="Results"):
-            yield Static(self.header_row_text())
+            yield Static(self.header_row_text(), classes="headings")
             yield self.ExtendedTable(cursor_type="row")
 
-    def header_row_text(self):
-        """Creates the header row for the datatable"""
-        header = Text("")
-        marker = Text("")
-        marker.align(width=1, align="left")
-        dex_id = Text("#")
-        name = Text("Name")
-        name.align(align="left", width=35)
-        types = Text("Types")
-        types.align(align="left", width=21)
-        total = Text("Total", justify="right")
-        total.align(align="right", width=21)
-        return (
-            header.append(marker)
-            .append(dex_id)
-            .append(" ")
-            .append(name)
-            .append(types)
-            .append(total)
-        )
+    def header_row_text(self) -> Text:
+        """Headings for the table columns, using the same widths as the table"""
+        padding = " " * CELL_PADDING
+        headings = Text("")
+        for _, heading, width, alignment in COLUMNS:
+            cell = Text(heading)
+            cell.align(alignment, width=width)
+            headings.append(padding).append(cell).append(padding)
+        return headings
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         """Updates marker position based on the highlighted row"""
@@ -107,11 +109,8 @@ class Results(Widget):
         table.show_header = False
 
         # Add all relevant columns
-        table.add_column("", width=1, key="marker")
-        table.add_column("#", key="dex_id")
-        table.add_column("Name", width=35)
-        table.add_column("Types", width=21)
-        table.add_column(Text("Total", justify="right"), width=5)
+        for key, heading, width, alignment in COLUMNS:
+            table.add_column(Text(heading, justify=alignment), width=width, key=key)
         # Update records of current pokemon from the csv
         self.update_records(self.all_records)
 
@@ -125,7 +124,7 @@ class Results(Widget):
                 "",
                 Text(f"{pokemon.dex_id:04}", style=Style(color=PALETTE.muted_text)),
                 pokemon.display_name,
-                create_type_badge(types=pokemon.types),
+                type_badges_text(pokemon.types, self.app.no_color),
                 Text(str(pokemon.total), justify="right"),
                 key=pokemon.key,
             )
