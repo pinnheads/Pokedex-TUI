@@ -254,3 +254,34 @@ def test_the_sort_argument_can_be_left_out(query_records):
     from pokedex_tui.query import filter_and_sort
 
     assert filter_and_sort(query_records, Criteria()) == query_records
+
+
+# --- Q2: name normalisation (PTI-45) -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Flabébé", "flabebe"),
+        ("FLABEBE", "flabebe"),
+        ("  char  ", "char"),
+        ("Mr. Mime", "mr mime"),
+        ("mr mime", "mr mime"),
+        ("Farfetch'd", "farfetchd"),
+        ("Type: Null", "type null"),
+        ("Ho-Oh", "hooh"),
+        ("", ""),
+        ("   ", ""),
+    ],
+)
+def test_normalise(text, expected):
+    from pokedex_tui.query import normalise
+
+    assert normalise(text) == expected
+
+
+def test_normalise_uses_case_folding_not_lower_case():
+    from pokedex_tui.query import normalise
+
+    # "ß".lower() is still "ß"; case folding turns it into "ss".
+    assert normalise("Straße") == normalise("STRASSE")
