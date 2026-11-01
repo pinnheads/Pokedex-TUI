@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Mapping
 from types import MappingProxyType
+import unicodedata
 
 from pokedex_tui.models import DEFAULT_SORT, Criteria, Pokemon, SortOrder
 
@@ -51,4 +52,16 @@ def filter_and_sort(
 
 
 def normalise(pokemon_name: str) -> str:
-    return pokemon_name.strip().lower()
+    """
+    Normalise pokemon name strings, "Flabébé" becomes "flabebe"
+    """
+    # strip out spaces and lower case
+    stripped_case_folded_name = pokemon_name.strip().casefold()
+    # remove character accents
+    nfkd_form = unicodedata.normalize("NFKD", stripped_case_folded_name)
+    accent_removed = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    # remove special characters while keeping digits and spaces
+    special_char_removed = "".join(
+        [c for c in accent_removed if c.isdigit() or c.isalnum() or c.isspace()]
+    )
+    return special_char_removed
