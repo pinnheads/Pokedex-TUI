@@ -32,7 +32,7 @@ class StatsPanel(Vertical):
 
         # form line
         self.query_one(selector=".form-line", expect_type=Static).content = Text(
-            text=pokemon.display_name, style=Style(color=PALETTE.accent)
+            text=pokemon.form or "", style=Style(color=PALETTE.accent)
         )
 
         # types line
