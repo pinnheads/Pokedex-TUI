@@ -33,6 +33,7 @@ StatsPanel {
     border: solid $border-blurred;
     border-title-color: $text-muted;
     width: 2fr;
+    padding: 1 1;
 }
 
 #header-title, #header-subtitle {
@@ -102,4 +103,13 @@ Box {
 Box:focus-within {
     border: solid $border;
     border-title-color: $accent;
+}
+
+.types-container {
+    height: auto;
+    margin-top: 1;
+}
+
+.stat-rows, .total-row, .hint-line {
+    margin-top: 1;
 }
