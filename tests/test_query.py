@@ -287,15 +287,6 @@ def test_normalise_uses_case_folding_not_lower_case():
     assert normalise("Straße") == normalise("STRASSE")
 
 
-def test_search_finds_names_containing_the_text(query_records):
-    assert _names(_run(query_records, search="char")) == [
-        ("Charmander", None),
-        ("Charmeleon", None),
-        ("Charizard", None),
-        ("Charizard", "Mega Charizard X"),
-    ]
-
-
 # --- Q3: name search (PTI-39) ---------------------------------------------------
 
 
