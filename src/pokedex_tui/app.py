@@ -46,6 +46,6 @@ class PokedexApp(App):
             all_records = default_sort_pokemon(load_pokemon(self.csv_path))
             self.total_ranks = total_ranks(all_records)
             self.all_records = all_records
-            self.push_screen(Browser(all_records=all_records))
+            self.push_screen(Browser(all_records=all_records, ranks=self.total_ranks))
         except PokedexDataError as e:
             self.exit(message=str(e), return_code=1)
