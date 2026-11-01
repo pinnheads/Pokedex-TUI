@@ -108,7 +108,7 @@ class Results(Widget):
         table.focus(scroll_visible=False)
         table.show_header = False
         if self.app.no_color:
-            table.classes = "no-color-table"
+            table.add_class("no-color-table")
 
         # Add all relevant columns
         for key, heading, width, alignment in COLUMNS:
