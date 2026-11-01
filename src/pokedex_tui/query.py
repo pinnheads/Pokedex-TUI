@@ -98,12 +98,19 @@ def _match_type_and_record(record: Pokemon, criteria: Criteria) -> bool:
     if not criteria.type1 and not criteria.type2:
         return True
 
+    # a type plus NO_SECOND_TYPE
+    if (
+        criteria.type1
+        and criteria.type2 == NO_SECOND_TYPE
+        and criteria.type1 == record.type1
+        and record.type2 is None
+    ):
+        return True
+
     # either slot set or both slot same
     if (
-        (criteria.type1 and criteria.type1 in record.types)
-        or (criteria.type2 and criteria.type2 in record.types)
-        or (criteria.type1 == criteria.type2 and criteria.type1 in record.types)
-    ):
+        criteria.type1 and criteria.type1 in record.types and criteria.type2 is None
+    ) or (criteria.type2 and criteria.type2 in record.types and criteria.type1 is None):
         return True
 
     # both slot set and both in record
@@ -114,23 +121,7 @@ def _match_type_and_record(record: Pokemon, criteria: Criteria) -> bool:
     ):
         return True
 
-    # a type plus NO_SECOND_TYPE
-    if (
-        criteria.type1
-        and criteria.type2 == NO_SECOND_TYPE
-        and criteria.type1 == record.type1
-        and record.type2 == None
-    ) or (
-        criteria.type1 == NO_SECOND_TYPE
-        and criteria.type2
-        and criteria.type2 == record.type2
-        and record.type1 == None
-    ):
-        return True
-
     return bool(
-        criteria.type1 == None
-        and criteria.type2 == NO_SECOND_TYPE
-        or (criteria.type1 == NO_SECOND_TYPE and criteria.type2 == None)
+        (criteria.type1 == None and criteria.type2 == NO_SECOND_TYPE)
         and len(record.types) == 1
     )
