@@ -343,3 +343,48 @@ def test_search_of_only_spaces_returns_everything(query_records):
 
 def test_search_that_matches_nothing_returns_an_empty_tuple(query_records):
     assert _run(query_records, search="zzz") == ()
+
+
+# --- Q4: type filter (PTI-37) ---------------------------------------------------
+
+
+def test_type_any_any_keeps_everything(query_records):
+    assert _run(query_records, type1=None, type2=None) == query_records
+
+
+def test_one_type_matches_either_slot(query_records):
+    # Psychic is Mr. Mime's first type and Alolan Raichu's second.
+    expected = [("Raichu", "Alolan Raichu"), ("Mr. Mime", None)]
+
+    assert _names(_run(query_records, type1="Psychic")) == expected
+    assert _names(_run(query_records, type2="Psychic")) == expected
+
+
+def test_two_types_match_in_either_order(query_records):
+    expected = [("Pelipper", None), ("Cramorant", None)]
+
+    assert _names(_run(query_records, type1="Water", type2="Flying")) == expected
+    assert _names(_run(query_records, type1="Flying", type2="Water")) == expected
+
+
+def test_the_same_type_twice_counts_as_one(query_records):
+    assert _run(query_records, type1="Fire", type2="Fire") == _run(
+        query_records, type1="Fire"
+    )
+
+
+def test_a_type_with_no_second_type_gives_pure_single_types(query_records):
+    from pokedex_tui.models import NO_SECOND_TYPE
+
+    found = _run(query_records, type1="Fire", type2=NO_SECOND_TYPE)
+
+    assert _names(found) == [("Charmander", None), ("Charmeleon", None)]
+
+
+def test_any_with_no_second_type_gives_every_single_type(query_records):
+    from pokedex_tui.models import NO_SECOND_TYPE
+
+    found = _run(query_records, type1=None, type2=NO_SECOND_TYPE)
+
+    assert all(p.type2 is None for p in found)
+    assert len(found) == 7
