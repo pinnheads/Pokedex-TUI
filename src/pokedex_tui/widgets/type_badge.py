@@ -4,6 +4,26 @@ from textual.widgets import Static
 
 from pokedex_tui.theme import TYPE_STYLES
 
+BADGE_WIDTH = 10
+
+
+def type_badge_text(type_name: str, no_color: bool) -> Text:
+    """single type badge: the name in capitals, centred in BADGE_WIDTH cells"""
+    if no_color:
+        badge = Text(f"[{type_name.upper()}]")
+    else:
+        style = TYPE_STYLES[type_name]
+        badge = Text(
+            type_name.upper(), style=Style(bgcolor=style.badge, color=style.text)
+        )
+    badge.align("center", width=BADGE_WIDTH)
+    return badge
+
+
+def type_badges_text(types: tuple[str, ...], no_color: bool) -> Text:
+    """Every badge for one Pokemon, with one space between them"""
+    return Text(" ").join(type_badge_text(name, no_color) for name in types)
+
 
 class TypeBadge(Static):
     def __init__(
@@ -26,35 +46,7 @@ class TypeBadge(Static):
             classes=classes,
             disabled=disabled,
         )
-        self.type_name = type_name.upper()
-        self.style = TYPE_STYLES[type_name]
+        self.type_name = type_name
 
     def on_mount(self) -> None:
-        if self.app.no_color:
-            self.update(f"[{self.type_name}]")
-        else:
-            self.update(self.type_name)
-            self.styles.background = self.style.badge
-            self.styles.color = self.style.text
-
-    def create_text_type_badge(self):
-        if self.app.no_color:
-            return Text(f"[{self.type_name}]")
-        return Text(
-            self.type_name, style=Style(bgcolor=self.style.badge, color=self.style.text)
-        )
-
-
-def create_type_badge(types: tuple[str] | tuple[str, str]):
-    """Creates type badges for the results table"""
-    type_badge_text = Text("")
-    for type in types:
-        style = TYPE_STYLES[type]
-        if type_badge_text:
-            type_badge_text.append(" ")
-        single_type = Text(
-            type.upper(), style=Style(bgcolor=style.badge, color=style.text)
-        )
-        single_type.align("center", width=10)
-        type_badge_text.append(text=single_type)
-    return type_badge_text
+        self.update(type_badge_text(self.type_name, self.app.no_color))
