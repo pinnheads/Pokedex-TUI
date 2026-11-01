@@ -71,6 +71,10 @@ ExtendedTable {
     scrollbar-size-vertical: 1;
 }
 
+.no-color-table > .datatable--cursor {
+    text-style: reverse bold;
+}
+
 ExtendedTable > .datatable--header {
     background: $background;
     text-style: bold;
