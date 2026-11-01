@@ -27,7 +27,7 @@ class StatsPanel(Vertical):
 
         # name line
         self.query_one(selector=".name-line", expect_type=Static).content = Text(
-            text=f"{pokemon.dex_id:04} ", style=Style(color=PALETTE.muted_text)
+            text=f"#{pokemon.dex_id:04} ", style=Style(color=PALETTE.muted_text)
         ).append(text=pokemon.name, style=Style(bold=True))
 
         # form line
@@ -74,7 +74,7 @@ class StatsPanel(Vertical):
 
         # total row
         total_label = Text(text="Total ", style=Style(color=PALETTE.muted_text))
-        total_label.set_length(8)
+        total_label.set_length(7)
         total_value = Text(
             text=f"{pokemon.total}",
             style=Style(color=PALETTE.accent, bold=True),
