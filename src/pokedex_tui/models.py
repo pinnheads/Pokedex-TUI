@@ -96,3 +96,16 @@ class Criteria:
 
     def replace(self, **changes) -> Criteria:
         return dataclasses.replace(self, **changes)
+
+
+@dataclass(frozen=True)
+class SortOrder:
+    """
+    Sort order for the search bar
+    """
+
+    by: str = field(default="dex")
+    descending: bool = field(default=False)
+
+
+DEFAULT_SORT = SortOrder()

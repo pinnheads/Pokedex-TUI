@@ -194,3 +194,63 @@ async def test_app_builds_total_ranks_at_startup():
         await pilot.pause()
         assert len(app.total_ranks) == 1215
         assert dict(app.total_ranks) == dict(total_ranks(app.all_records))
+
+
+# =============================================================================
+# Phase 4: search, filter and sort (PTI-53, 45, 39, 37, 34, 28, 22, 12, 21, 10)
+#
+# Names these tests expect (rename here if you chose different ones):
+# - pokedex_tui.query.normalise(text): the plain form used to compare names
+#   and search text. Lower case (case folded), no accents, no punctuation,
+#   no spaces at the ends. Spaces inside the text stay, so "Mr. Mime" becomes
+#   "mr mime".
+# - pokedex_tui.query.filter_and_sort(records, criteria, sort=SortOrder()):
+#   the one public entry point. Takes any iterable of Pokemon, returns a new
+#   tuple of the matching records in order.
+# - pokedex_tui.query.type_options(slot) and generation_options(): the values
+#   behind the pickers. None stands for "Any" or "All".
+# - pokedex_tui.query.type_counts(records, criteria, slot): for each choice in
+#   that type picker, how many records would match if it were picked.
+# - pokedex_tui.models.SortOrder and SORT_FIELDS: see test_models.py.
+#
+# Most tests use query_records, the 16 hand-made rows in conftest.py.
+# =============================================================================
+
+
+def _names(records):
+    """(name, form) pairs, so a failing test shows readable rows."""
+    return [(p.name, p.form) for p in records]
+
+
+def _run(records, sort=None, **criteria):
+    from pokedex_tui.models import Criteria, SortOrder
+    from pokedex_tui.query import filter_and_sort
+
+    return filter_and_sort(records, Criteria(**criteria), sort or SortOrder())
+
+
+# --- Q1: the module and the entry point (PTI-53) -------------------------------
+
+
+def test_nothing_in_gives_nothing_out():
+    assert _run(()) == ()
+
+
+def test_result_is_a_tuple(query_records):
+    assert isinstance(_run(query_records), tuple)
+
+
+def test_entry_point_accepts_a_list_and_leaves_it_alone(query_records):
+    records = list(query_records)
+    before = list(records)
+
+    _run(records, search="char")
+
+    assert records == before
+
+
+def test_the_sort_argument_can_be_left_out(query_records):
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.query import filter_and_sort
+
+    assert filter_and_sort(query_records, Criteria()) == query_records

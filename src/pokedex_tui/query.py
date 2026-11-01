@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Mapping
 from types import MappingProxyType
 
-from pokedex_tui.models import Pokemon
+from pokedex_tui.models import DEFAULT_SORT, Criteria, Pokemon, SortOrder
 
 
 def default_sort_pokemon(
@@ -38,3 +38,17 @@ def total_ranks(records: Iterable[Pokemon]) -> Mapping[str, int]:
         prev_pokemon = pokemon
 
     return MappingProxyType(ranks)
+
+
+def filter_and_sort(
+    all_records: tuple[Pokemon, ...],
+    criteria: Criteria,
+    sort_in: SortOrder = DEFAULT_SORT,
+):
+    if len(all_records) == 0:
+        return ()
+    return all_records
+
+
+def normalise(pokemon_name: str) -> str:
+    return pokemon_name.strip().lower()
