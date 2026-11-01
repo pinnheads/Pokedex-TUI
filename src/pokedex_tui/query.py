@@ -1,6 +1,6 @@
+import unicodedata
 from collections.abc import Iterable, Mapping
 from types import MappingProxyType
-import unicodedata
 
 from pokedex_tui.models import DEFAULT_SORT, Criteria, Pokemon, SortOrder
 
