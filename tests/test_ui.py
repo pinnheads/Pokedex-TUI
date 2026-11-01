@@ -237,6 +237,17 @@ async def test_update_records_replaces_the_rows():
         assert table_of(app).row_count == 9
 
 
+async def test_forms_without_the_species_name_show_both():
+    # C10: "Female" alone does not say which Pokemon the row is.
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        table = table_of(app)
+        names = {row(table, i)[NAME] for i in range(table.row_count)}
+        assert {"Nidoran Female", "Nidoran Male", "Castform Sunny Form"} <= names
+        assert "Female" not in names
+
+
 # --- Selection and marker (S7) -----------------------------------------------------
 
 
@@ -584,9 +595,9 @@ async def test_panel_first_line_is_dex_number_and_name(all_records, charizards):
     rows, _ = await run_panel(all_records, charizards[0])
     first = rows[line_index(rows, "Charizard")]
 
-    assert "0006" in row_text(first)
-    assert row_text(first).index("0006") < row_text(first).index("Charizard")
-    assert hex_of(style_of(first, "0006").color) == PALETTE.muted_text
+    # C10: the Dex number has a "#" in front, as in main-screen-preview.png.
+    assert "#0006 Charizard" in row_text(first)
+    assert hex_of(style_of(first, "#0006").color) == PALETTE.muted_text
     assert style_of(first, "Charizard").bold
 
 
@@ -935,18 +946,18 @@ async def test_details_pane_shows_the_first_row_at_startup():
     async with app.run_test(size=SIZE) as pilot:
         await start(app, pilot)
         await pilot.pause()
-        assert panel_name_line(app) == "0001 Bulbasaur"
+        assert panel_name_line(app) == "#0001 Bulbasaur"
 
 
 @pytest.mark.parametrize(
     ("keys", "expected"),
     [
-        (["down"], "0002 Ivysaur"),
-        (["down", "down", "up"], "0002 Ivysaur"),
-        (["j", "j"], "0003 Venusaur"),
-        (["end"], "1025 Pecharunt"),
-        (["end", "home"], "0001 Bulbasaur"),
-        (["pagedown", "pageup"], "0001 Bulbasaur"),
+        (["down"], "#0002 Ivysaur"),
+        (["down", "down", "up"], "#0002 Ivysaur"),
+        (["j", "j"], "#0003 Venusaur"),
+        (["end"], "#1025 Pecharunt"),
+        (["end", "home"], "#0001 Bulbasaur"),
+        (["pagedown", "pageup"], "#0001 Bulbasaur"),
     ],
 )
 async def test_details_pane_follows_the_cursor(keys, expected):
@@ -974,7 +985,7 @@ async def test_details_pane_follows_each_step_through_the_charmander_line():
             await pilot.pause()
             seen.append(panel_name_line(app))
             await pilot.press("down")
-        assert seen == ["0004 Charmander", "0005 Charmeleon", "0006 Charizard"]
+        assert seen == ["#0004 Charmander", "#0005 Charmeleon", "#0006 Charizard"]
 
 
 async def test_details_pane_follows_a_mouse_click():
@@ -988,7 +999,7 @@ async def test_details_pane_follows_a_mouse_click():
         await pilot.pause()
         assert table.cursor_row == 3
         panel = app.screen.query_one(StatsPanel)
-        assert panel_name_line(app) == "0003 Venusaur"
+        assert panel_name_line(app) == "#0003 Venusaur"
         assert str(panel.query_one(".form-line").render()) == "Mega Venusaur"
 
 

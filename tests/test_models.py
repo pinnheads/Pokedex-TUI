@@ -90,9 +90,39 @@ def test_display_name_is_species_name_without_a_form(make_pokemon):
     assert make_pokemon().display_name == "Charizard"
 
 
-def test_display_name_is_form_name_when_there_is_a_form(make_pokemon):
+def test_display_name_is_form_name_when_the_form_contains_the_name(make_pokemon):
     p = make_pokemon(form="Mega Charizard X", type2="Dragon")
     assert p.display_name == "Mega Charizard X"
+
+
+@pytest.mark.parametrize(
+    ("name", "form", "expected"),
+    [
+        ("Nidoran", "Female", "Nidoran Female"),
+        ("Castform", "Sunny Form", "Castform Sunny Form"),
+        ("Darmanitan", "Zen Mode", "Darmanitan Zen Mode"),
+        ("Darmanitan", "Galarian Zen Mode", "Darmanitan Galarian Zen Mode"),
+    ],
+)
+def test_display_name_puts_the_name_first_when_the_form_lacks_it(
+    make_pokemon, name, form, expected
+):
+    # C10: a form like "Female" alone does not say which Pokemon it is.
+    assert make_pokemon(name=name, form=form).display_name == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "form"),
+    [
+        ("Raichu", "Alolan Raichu"),
+        ("Pikachu", "Partner Pikachu"),
+        ("Greninja", "Ash-Greninja"),
+    ],
+)
+def test_display_name_does_not_repeat_a_name_already_in_the_form(
+    make_pokemon, name, form
+):
+    assert make_pokemon(name=name, form=form).display_name == form
 
 
 def test_types_has_both_types_in_slot_order(make_pokemon):

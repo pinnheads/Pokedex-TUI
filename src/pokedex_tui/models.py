@@ -45,6 +45,16 @@ class Pokemon:
 
     @property
     def display_name(self) -> str:
+        form_text = ""
+        if self.form and self.name in self.form:
+            form_text = self.form
+        elif self.form and self.name not in self.form:
+            form_text = f"{self.name} {self.form}"
+        else:
+            form_text = self.name
+
+        return form_text
+
         return self.form if self.form else self.name
 
     @property
