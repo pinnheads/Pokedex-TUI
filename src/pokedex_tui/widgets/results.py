@@ -98,9 +98,6 @@ class Results(Widget):
             table.update_cell(self.current_marker, "marker", "")
         table.update_cell(highlighted_key, "marker", ">")
         self.current_marker = highlighted_key
-        # update dex_id cell to not show muted text when selected
-        dex_id = table.get_cell(highlighted_key, "dex_id")
-        table.update_cell(highlighted_key, "dex_id", dex_id)
 
     def on_mount(self) -> None:
         # Get the current datatable
