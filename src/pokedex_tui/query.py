@@ -46,9 +46,17 @@ def filter_and_sort(
     criteria: Criteria,
     sort_in: SortOrder = DEFAULT_SORT,
 ):
+    normalised_search = normalise(criteria.search)
+
     if len(all_records) == 0:
         return ()
-    return default_sort_pokemon(all_records)
+
+    search_filtered_records = tuple(
+        record
+        for record in all_records
+        if _match_search_and_record(record=record, search_text=normalised_search)
+    )
+    return default_sort_pokemon(search_filtered_records)
 
 
 def normalise(pokemon_name: str) -> str:
@@ -65,3 +73,13 @@ def normalise(pokemon_name: str) -> str:
         [c for c in accent_removed if c.isalnum() or c.isspace()]
     )
     return special_char_removed.strip()
+
+
+def _match_search_and_record(record: Pokemon, search_text: str) -> bool:
+    if not search_text:
+        return True
+
+    if search_text in normalise(record.name):
+        return True
+
+    return bool(record.form and search_text in normalise(record.form))

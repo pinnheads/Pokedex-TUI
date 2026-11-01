@@ -285,3 +285,61 @@ def test_normalise_uses_case_folding_not_lower_case():
 
     # "ß".lower() is still "ß"; case folding turns it into "ss".
     assert normalise("Straße") == normalise("STRASSE")
+
+
+def test_search_finds_names_containing_the_text(query_records):
+    assert _names(_run(query_records, search="char")) == [
+        ("Charmander", None),
+        ("Charmeleon", None),
+        ("Charizard", None),
+        ("Charizard", "Mega Charizard X"),
+    ]
+
+
+# --- Q3: name search (PTI-39) ---------------------------------------------------
+
+
+def test_search_matches_the_form_name(query_records):
+    assert _names(_run(query_records, search="ALOLAN")) == [("Raichu", "Alolan Raichu")]
+
+
+def test_mega_finds_the_mega_form_and_names_containing_mega(query_records):
+    found = _names(_run(query_records, search="mega"))
+
+    assert ("Charizard", "Mega Charizard X") in found
+    # Correct substring matches, even though they are not Megas.
+    assert ("Meganium", None) in found
+    assert ("Yanmega", None) in found
+    assert len(found) == 3
+
+
+@pytest.mark.parametrize("text", ["flabebe", "Flabébé", "FLABEBE"])
+def test_search_ignores_accents_and_case(query_records, text):
+    assert _names(_run(query_records, search=text)) == [("Flabébé", None)]
+
+
+@pytest.mark.parametrize(
+    ("text", "name"),
+    [
+        ("mr mime", "Mr. Mime"),
+        ("mr. mime", "Mr. Mime"),
+        ("farfetchd", "Farfetch'd"),
+        ("farfetch'd", "Farfetch'd"),
+        ("type null", "Type: Null"),
+        ("type: null", "Type: Null"),
+    ],
+)
+def test_search_ignores_punctuation(query_records, text, name):
+    assert _names(_run(query_records, search=text)) == [(name, None)]
+
+
+def test_search_ignores_spaces_at_the_ends(query_records):
+    assert _run(query_records, search="  mime  ") == _run(query_records, search="mime")
+
+
+def test_search_of_only_spaces_returns_everything(query_records):
+    assert _run(query_records, search="   ") == query_records
+
+
+def test_search_that_matches_nothing_returns_an_empty_tuple(query_records):
+    assert _run(query_records, search="zzz") == ()
