@@ -1,14 +1,17 @@
 from typing import ClassVar
 
+from rich.style import Style
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.message import Message
 from textual.widget import Widget
-from textual.widgets import DataTable
+from textual.widgets import DataTable, Static
 
 from pokedex_tui.models import Pokemon
+from pokedex_tui.theme import PALETTE
 from pokedex_tui.widgets.box import Box
+from pokedex_tui.widgets.type_badge import create_type_badge
 
 
 class Results(Widget):
@@ -55,7 +58,29 @@ class Results(Widget):
 
     def compose(self) -> ComposeResult:
         with Box(title="Results"):
+            yield Static(self.header_row_text())
             yield self.ExtendedTable(cursor_type="row")
+
+    def header_row_text(self):
+        """Creates the header row for the datatable"""
+        header = Text("")
+        marker = Text("")
+        marker.align(width=1, align="left")
+        dex_id = Text("#")
+        name = Text("Name")
+        name.align(align="left", width=35)
+        types = Text("Types")
+        types.align(align="left", width=21)
+        total = Text("Total", justify="right")
+        total.align(align="right", width=21)
+        return (
+            header.append(marker)
+            .append(dex_id)
+            .append(" ")
+            .append(name)
+            .append(types)
+            .append(total)
+        )
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         """Updates marker position based on the highlighted row"""
@@ -73,18 +98,22 @@ class Results(Widget):
             table.update_cell(self.current_marker, "marker", "")
         table.update_cell(highlighted_key, "marker", ">")
         self.current_marker = highlighted_key
+        # update dex_id cell to not show muted text when selected
+        dex_id = table.get_cell(highlighted_key, "dex_id")
+        table.update_cell(highlighted_key, "dex_id", dex_id)
 
     def on_mount(self) -> None:
         # Get the current datatable
         table = self.query_one(DataTable)
         # Focus on the datatable on mount
         table.focus(scroll_visible=False)
+        table.show_header = False
 
         # Add all relevant columns
         table.add_column("", width=1, key="marker")
         table.add_column("#", key="dex_id")
         table.add_column("Name", width=35)
-        table.add_column("Types", width=20)
+        table.add_column("Types", width=21)
         table.add_column(Text("Total", justify="right"), width=5)
         # Update records of current pokemon from the csv
         self.update_records(self.all_records)
@@ -97,11 +126,9 @@ class Results(Widget):
         for pokemon in records:
             table.add_row(
                 "",
-                f"{pokemon.dex_id:04}",
+                Text(f"{pokemon.dex_id:04}", style=Style(color=PALETTE.muted_text)),
                 pokemon.display_name,
-                f"{pokemon.types[0]} / {pokemon.types[1]}"
-                if len(pokemon.types) > 1
-                else f"{pokemon.types[0]}",
+                create_type_badge(types=pokemon.types),
                 Text(str(pokemon.total), justify="right"),
                 key=pokemon.key,
             )
