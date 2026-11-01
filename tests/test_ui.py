@@ -109,6 +109,7 @@ async def test_layout_regions_at_100_by_30():
     from pokedex_tui.widgets.filter_bar import FilterBar
     from pokedex_tui.widgets.header import PokedexHeader
     from pokedex_tui.widgets.results import Results
+    from pokedex_tui.widgets.stats_panel import StatsPanel
 
     app = make_app()
     async with app.run_test(size=SIZE) as pilot:
@@ -117,14 +118,44 @@ async def test_layout_regions_at_100_by_30():
         header = screen.query_one(PokedexHeader).region
         search = screen.query_one(FilterBar).region
         results = screen.query_one(Results).region
+        details = screen.query_one(StatsPanel).region
         footer = screen.query_one(Footer).region
 
         assert (header.y, header.height) == (0, 1)
         assert (search.y, search.height) == (1, 3)
-        assert (results.y, results.height) == (4, 25)
         assert (footer.y, footer.height) == (29, 1)
-        assert results.width == 100, "a screen scrollbar is eating columns"
+        # C7: Results on the left (60%), Details on the right (40%), same rows.
+        assert (results.x, results.y, results.height) == (0, 4, 25)
+        assert (details.y, details.height) == (4, 25)
+        assert (results.width, details.width) == (60, 40)
+        assert details.x == results.right
+        assert details.right == 100, "a screen scrollbar is eating columns"
         assert not screen.show_vertical_scrollbar
+
+
+async def test_only_the_focused_box_has_an_accent_border():
+    """C7: the focused Results box has an accent border and title; Details is grey."""
+    from pokedex_tui.theme import PALETTE
+    from pokedex_tui.widgets.results import Results
+    from pokedex_tui.widgets.stats_panel import StatsPanel
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        screen = app.screen
+        for widget, title, border, title_colour in (
+            (Results, "Results", PALETTE.accent, PALETTE.accent),
+            (StatsPanel, "Details", PALETTE.border, PALETTE.muted_text),
+        ):
+            region = screen.query_one(widget).region
+            top = screen_cells(app, region)[0]
+            text = row_text(top)
+            start_at = text.index(title)
+            title_cells = top[start_at : start_at + len(title)]
+            line_cells = [style for char, style in top if char == "─"]
+
+            assert {hex_of(s.color) for _, s in title_cells} == {title_colour}
+            assert {hex_of(s.color) for s in line_cells} == {border}
 
 
 # --- Results table (S6) ----------------------------------------------------------

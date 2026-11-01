@@ -27,7 +27,7 @@ class Browser(Screen):
         """Show Header, Footer and Content"""
         yield PokedexHeader(total=len(self.all_records))
         yield FilterBar()
-        with Horizontal():
+        with Horizontal(id="body"):
             yield Results(all_records=self.all_records, id="results")
             yield StatsPanel()
         yield Footer()
