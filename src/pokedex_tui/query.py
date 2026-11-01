@@ -48,20 +48,20 @@ def filter_and_sort(
 ):
     if len(all_records) == 0:
         return ()
-    return all_records
+    return default_sort_pokemon(all_records)
 
 
 def normalise(pokemon_name: str) -> str:
     """
     Normalise pokemon name strings, "Flabébé" becomes "flabebe"
     """
-    # strip out spaces and lower case
-    stripped_case_folded_name = pokemon_name.strip().casefold()
+    # lower case
+    stripped_case_folded_name = pokemon_name.casefold()
     # remove character accents
     nfkd_form = unicodedata.normalize("NFKD", stripped_case_folded_name)
     accent_removed = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
     # remove special characters while keeping digits and spaces
     special_char_removed = "".join(
-        [c for c in accent_removed if c.isdigit() or c.isalnum() or c.isspace()]
+        [c for c in accent_removed if c.isalnum() or c.isspace()]
     )
-    return special_char_removed
+    return special_char_removed.strip()
