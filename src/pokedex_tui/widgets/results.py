@@ -107,6 +107,8 @@ class Results(Widget):
         # Focus on the datatable on mount
         table.focus(scroll_visible=False)
         table.show_header = False
+        if self.app.no_color:
+            table.classes = "no-color-table"
 
         # Add all relevant columns
         for key, heading, width, alignment in COLUMNS:
