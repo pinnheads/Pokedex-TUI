@@ -16,6 +16,19 @@ PokedexHeader {
     margin-left: 1;
 }
 
+Results {
+    width: 3fr;
+    height: 1fr;
+}
+
+StatsPanel {
+    background: $raised;
+    height: 1fr;
+    border: solid $border-blurred;
+    border-title-color: $text-muted;
+    width: 2fr;
+}
+
 #header-title, #header-subtitle {
     width: auto;
     margin: 0 1;
@@ -37,7 +50,7 @@ FilterBar {
     height: 3;
 }
 
-#results {
+#body {
     height: 1fr;
 }
 
@@ -68,8 +81,10 @@ ExtendedTable > .datatable--header-hover, ExtendedTable > .datatable--header-cur
 
 Box {
     border: solid $border-blurred;
+    border-title-color: $text-muted;
 }
 
 Box:focus-within {
     border: solid $border;
+    border-title-color: $accent;
 }

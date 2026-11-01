@@ -13,13 +13,6 @@ LABELS = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
 
 class StatsPanel(Vertical):
     BORDER_TITLE = "Details"
-    DEFAULT_CSS = """
-    StatsPanel {
-        background: $raised;
-        height: auto;
-        border: solid $border-blurred;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         """Adds these widgets to screen, data is added later"""

@@ -1,4 +1,5 @@
 from textual.app import ComposeResult
+from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Footer
 
@@ -6,6 +7,7 @@ from pokedex_tui.models import Pokemon
 from pokedex_tui.widgets.filter_bar import FilterBar
 from pokedex_tui.widgets.header import PokedexHeader
 from pokedex_tui.widgets.results import Results
+from pokedex_tui.widgets.stats_panel import StatsPanel
 
 
 class Browser(Screen):
@@ -25,5 +27,7 @@ class Browser(Screen):
         """Show Header, Footer and Content"""
         yield PokedexHeader(total=len(self.all_records))
         yield FilterBar()
-        yield Results(all_records=self.all_records, id="results")
+        with Horizontal():
+            yield Results(all_records=self.all_records, id="results")
+            yield StatsPanel()
         yield Footer()
