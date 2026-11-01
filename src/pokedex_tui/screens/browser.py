@@ -25,22 +25,17 @@ class Browser(Screen):
     ) -> None:
         super().__init__(name, id, classes)
         self.all_records = all_records
-        self.changed_key = all_records[0].key
+        self.selected_key = all_records[0].key
+        self.lookup_table = {pokemon.key: pokemon for pokemon in self.all_records}
         self.ranks = ranks
 
-    def on_selection_changed(self, event: Results.SelectionChanged) -> None:
-        self.changed_key = event.key
+    def on_results_selection_changed(self, event: Results.SelectionChanged) -> None:
+        self.selected_key = event.key
         self.query_one(StatsPanel).show_pokemon(
-            pokemon=self.key_to_pokemon(self.changed_key),
-            rank=self.ranks[self.changed_key],
+            pokemon=self.lookup_table[self.selected_key],
+            rank=self.ranks[self.selected_key],
             total_count=len(self.all_records),
         )
-
-    def key_to_pokemon(self, key: str) -> Pokemon:
-        for pokemon in self.all_records:
-            if pokemon.key == key:
-                return pokemon
-        return self.all_records[0]
 
     def compose(self) -> ComposeResult:
         """Show Header, Footer and Content"""
