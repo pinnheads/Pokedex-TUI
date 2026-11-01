@@ -48,14 +48,12 @@ def filter_and_sort(
 ):
     normalised_search = normalise(criteria.search)
 
-    if len(all_records) == 0:
-        return ()
-
     search_filtered_records = tuple(
         record
         for record in all_records
         if _match_search_and_record(record=record, search_text=normalised_search)
     )
+
     return default_sort_pokemon(search_filtered_records)
 
 
