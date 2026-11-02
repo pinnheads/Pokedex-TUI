@@ -184,23 +184,9 @@ def type_counts(records: tuple[Pokemon, ...], criteria: Criteria, slot: int):
 
     for option in options:
         if slot == 1:
-            new_critreia = Criteria(
-                search=criteria.search,
-                type1=option,
-                type2=criteria.type2,
-                generations=criteria.generations,
-                hide_forms=criteria.hide_forms,
-            )
-            trial = new_critreia
+            trial = criteria.replace(type1=option)
         else:
-            new_critreia = Criteria(
-                search=criteria.search,
-                type1=criteria.type1,
-                type2=option,
-                generations=criteria.generations,
-                hide_forms=criteria.hide_forms,
-            )
-            trial = new_critreia
+            trial = criteria.replace(type2=option)
         counts[option] = len(filter_and_sort(records, trial))
 
     return MappingProxyType(counts)
