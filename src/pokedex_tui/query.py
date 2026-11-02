@@ -84,7 +84,10 @@ def filter_and_sort(
             sorted(
                 filtered_records,
                 key=lambda pokemon: (
-                    not normalise(pokemon.display_name).startswith(normalised_search)
+                    not (
+                        normalise(pokemon.display_name).startswith(normalised_search)
+                        or normalise(pokemon.name).startswith(normalised_search)
+                    )
                 ),
             )
         )
@@ -205,3 +208,23 @@ def _sort_key(pokemon: Pokemon, by: str) -> int | str:
     if by == "name":
         return normalise(pokemon.display_name)
     return getattr(pokemon, by)
+
+
+if __name__ == "__main__":
+    from time import perf_counter
+
+    from pokedex_tui.loader import load_pokemon
+
+    records = load_pokemon()
+
+    start = perf_counter()
+    default_result = filter_and_sort(records, Criteria())
+    default_ms = (perf_counter() - start) * 1000
+
+    start = perf_counter()
+    search_result = filter_and_sort(records, Criteria(search="char"))
+    search_ms = (perf_counter() - start) * 1000
+
+    print(f"Default query: {len(default_result)} rows in {default_ms:.1f} ms")
+    print(f"Search 'char': {len(search_result)} rows in {search_ms:.1f} ms")
+    print(f"Total: {default_ms + search_ms:.1f} ms (target: under 50 ms)")

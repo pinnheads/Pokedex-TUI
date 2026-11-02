@@ -758,3 +758,73 @@ def test_type_counts_are_read_only(query_records):
 
     with pytest.raises(TypeError):
         counts["Fire"] = 99  # type: ignore[index]
+
+
+# --- Q10: the real data (PTI-10) -------------------------------------------------
+
+
+def test_real_default_query_is_all_1215_in_dex_order(all_records):
+    from pokedex_tui.query import default_sort_pokemon
+
+    found = _run(all_records)
+
+    assert len(found) == 1215
+    assert found == default_sort_pokemon(all_records)
+
+
+def test_real_pure_fire_types(all_records):
+    from pokedex_tui.models import NO_SECOND_TYPE
+
+    assert len(_run(all_records, type1="Fire", type2=NO_SECOND_TYPE)) == 37
+
+
+def test_real_fire_in_either_slot(all_records):
+    assert len(_run(all_records, type1="Fire")) == 97
+
+
+def test_real_gen_1_is_the_original_151(all_records):
+    found = _run(all_records, generations=frozenset({1}))
+
+    assert len(found) == 151
+    assert not any(p.form and p.form.startswith("Mega") for p in found)
+    assert not any(p.form and "Alolan" in p.form for p in found)
+
+
+def test_real_gen_6_has_all_48_megas(all_records):
+    found = _run(all_records, generations=frozenset({6}))
+    megas = [p for p in found if p.form and p.form.startswith("Mega")]
+
+    assert len(megas) == 48
+
+
+def test_real_search_finds_flabebe(all_records):
+    assert ("Flabébé", None) in _names(_run(all_records, search="flabebe"))
+
+
+def test_real_search_char_ranks_starts_with_first(all_records):
+    assert _names(_run(all_records, search="char")) == [
+        ("Charmander", None),
+        ("Charmeleon", None),
+        ("Charizard", None),
+        ("Charizard", "Mega Charizard X"),
+        ("Charizard", "Mega Charizard Y"),
+        ("Charjabug", None),
+        ("Charcadet", None),
+        ("Chimchar", None),
+        ("Pecharunt", None),
+    ]
+
+
+def test_real_hide_forms_gives_1025_rows(all_records):
+    found = _run(all_records, hide_forms=True)
+
+    assert len(found) == 1025
+    assert len({p.dex_id for p in found}) == 1025
+
+
+def test_real_total_descending(all_records):
+    found = _run(all_records, sort=_sort("total", descending=True))
+
+    assert (found[0].name, found[0].form) == ("Eternatus", "Eternamax")
+    keys = [(-p.total, p.dex_id) for p in found]
+    assert keys == sorted(keys)
