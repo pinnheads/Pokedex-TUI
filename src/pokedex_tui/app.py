@@ -39,16 +39,12 @@ class PokedexApp(App):
     CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
     ENABLE_COMMAND_PALETTE = False
-    criteria = reactive(Criteria())
+    criteria = reactive(Criteria(), init=False)
     sort_order = reactive(DEFAULT_SORT, init=False)
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
-        Binding("g", "gen one", "gen_one", show=False),
     ]
-
-    def action_gen_one(self):
-        self.criteria.replace(generations=frozenset({1}))
 
     def watch_criteria(self) -> None:
         self.update_filtered_records()
@@ -64,7 +60,7 @@ class PokedexApp(App):
         result_widget.update_records(self.filtered_records)
 
     def on_filter_bar_criteria_changed(self, event: FilterBar.CriteriaChanged):
-        self.cirteria = event.criteria
+        self.criteria = event.criteria
 
     def on_filter_bar_sort_changed(self, event: FilterBar.SortChanged):
         self.sort_order = event.sort_order
