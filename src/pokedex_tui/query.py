@@ -179,7 +179,7 @@ def generation_options():
 
 def type_counts(records: tuple[Pokemon, ...], criteria: Criteria, slot: int):
     """return matching record counts based on how many type options match the given records"""
-    options = type_options(slot)
+    options = type_options(slot)[1:]
     counts = {}
 
     for option in options:
