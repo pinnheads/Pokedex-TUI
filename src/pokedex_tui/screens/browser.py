@@ -25,7 +25,7 @@ class Browser(Screen):
     ) -> None:
         super().__init__(name, id, classes)
         self.all_records = all_records
-        self.selected_key = all_records[0].key
+        self.selected_key: str | None = None
         self.lookup_table = {pokemon.key: pokemon for pokemon in self.all_records}
         self.ranks = ranks
 
@@ -37,6 +37,10 @@ class Browser(Screen):
             rank=self.ranks[self.selected_key],
             total_count=len(self.all_records),
         )
+
+    def on_results_selection_cleared(self, event: Results.SelectionCleared) -> None:
+        self.selected_key = None
+        self.query_one(StatsPanel).clear_pokemon()
 
     def compose(self) -> ComposeResult:
         """Show Header, Footer and Content"""
