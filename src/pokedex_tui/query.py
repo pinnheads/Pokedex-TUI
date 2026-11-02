@@ -53,7 +53,7 @@ def filter_and_sort(
     sort_in: SortOrder = DEFAULT_SORT,
 ):
 
-    if criteria.is_default:
+    if criteria.is_default and sort_in == DEFAULT_SORT:
         return default_sort_pokemon(all_records)
 
     normalised_search = normalise(criteria.search)
@@ -68,10 +68,16 @@ def filter_and_sort(
         )
     )
 
+    filtered_and_sorted_records = sorted(
+        filtered_records,
+        key=lambda pokemon: normalise(sort_in.by),
+        reverse=sort_in.descending,
+    )
+
     if criteria.hide_forms:
         dex_ids = set()
         hidden_forms = []
-        for record in filtered_records:
+        for record in filtered_and_sorted_records:
             if record.dex_id not in dex_ids:
                 hidden_forms.append(record)
             dex_ids.add(record.dex_id)

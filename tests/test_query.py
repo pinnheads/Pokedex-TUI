@@ -501,3 +501,115 @@ def test_same_inputs_give_equal_results(query_records):
     second = _run(query_records, search="a", type1="Flying")
 
     assert first == second
+
+
+# --- Q7: sorting (PTI-22) -------------------------------------------------------
+
+
+def _sort(field, descending=None):
+    from pokedex_tui.models import SortOrder
+
+    order = SortOrder.for_field(field)
+    if descending is not None and order.descending != descending:
+        order = order.flipped()
+    return order
+
+
+def test_default_sort_is_dex_order_with_the_base_form_first(query_records):
+    found = _run(list(reversed(query_records)))
+
+    assert found == query_records
+    assert _names(found)[3:5] == [
+        ("Charizard", None),
+        ("Charizard", "Mega Charizard X"),
+    ]
+
+
+def test_total_descending_puts_the_highest_first(query_records):
+    found = _run(query_records, sort=_sort("total", descending=True))
+
+    assert _names(found)[:3] == [
+        ("Charizard", "Mega Charizard X"),  # 634
+        ("Charizard", None),  # 534, Dex #6
+        ("Type: Null", None),  # 534, Dex #772
+    ]
+
+
+def test_equal_values_keep_dex_order_when_the_sort_is_flipped(query_records):
+    found = _names(_run(query_records, sort=_sort("total", descending=False)))
+
+    # Charizard and Type: Null both have 534: Dex #6 stays first.
+    assert found.index(("Charizard", None)) < found.index(("Type: Null", None))
+
+
+def test_equal_values_on_one_dex_number_keep_the_base_form_first(query_records):
+    # Raichu, Alolan Raichu and Pelipper all have 60 HP.
+    found = _names(_run(query_records, sort=_sort("hp", descending=True)))
+    sixty = [row for row in found if row[0] in ("Raichu", "Pelipper")]
+
+    assert found[0] == ("Type: Null", None)  # 95 HP
+    assert sixty == [("Raichu", None), ("Raichu", "Alolan Raichu"), ("Pelipper", None)]
+
+
+def test_name_sort_uses_the_display_name_without_accents(query_records):
+    found = _run(query_records, sort=_sort("name"))
+
+    assert [p.display_name for p in found] == [
+        "Alolan Raichu",
+        "Bulbasaur",
+        "Charizard",
+        "Charmander",
+        "Charmeleon",
+        "Cramorant",
+        "Farfetch'd",
+        "Flabébé",
+        "Mega Charizard X",
+        "Meganium",
+        "Mr. Mime",
+        "Nidoran Female",
+        "Pelipper",
+        "Raichu",
+        "Type: Null",
+        "Yanmega",
+    ]
+
+
+def test_name_descending_is_the_reverse(query_records):
+    up = _run(query_records, sort=_sort("name", descending=False))
+    down = _run(query_records, sort=_sort("name", descending=True))
+
+    assert down == tuple(reversed(up))
+
+
+@pytest.mark.parametrize(
+    "field", ["total", "hp", "attack", "defense", "sp_atk", "sp_def", "speed"]
+)
+@pytest.mark.parametrize("descending", [True, False])
+def test_every_stat_sort_orders_by_value_then_dex_number(
+    query_records, field, descending
+):
+    found = _run(query_records, sort=_sort(field, descending=descending))
+
+    sign = -1 if descending else 1
+    keys = [(sign * getattr(p, field), p.dex_id, p.is_form) for p in found]
+    assert keys == sorted(keys)
+    assert len(found) == len(query_records)
+
+
+def test_dex_descending_reverses_dex_numbers(query_records):
+    found = _run(query_records, sort=_sort("dex", descending=True))
+
+    assert [p.dex_id for p in found] == sorted(
+        (p.dex_id for p in query_records), reverse=True
+    )
+
+
+def test_sorting_applies_after_filtering(query_records):
+    found = _run(query_records, sort=_sort("speed"), type1="Fire")
+
+    assert _names(found) == [
+        ("Charizard", None),  # 100, Dex #6 base form
+        ("Charizard", "Mega Charizard X"),  # 100
+        ("Charmeleon", None),  # 80
+        ("Charmander", None),  # 65
+    ]
