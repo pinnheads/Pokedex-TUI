@@ -54,14 +54,27 @@ def filter_and_sort(
 ):
     normalised_search = normalise(criteria.search)
 
-    search_filtered_records = tuple(
-        record
-        for record in all_records
-        if _match_search_and_record(record=record, search_text=normalised_search)
-        and _match_type_and_record(record=record, criteria=criteria)
+    search_filtered_records = default_sort_pokemon(
+        tuple(
+            record
+            for record in all_records
+            if _match_search_and_record(record=record, search_text=normalised_search)
+            and _match_type_and_record(record=record, criteria=criteria)
+            and _match_gen_and_record(record=record, criteria=criteria)
+        )
     )
 
-    return default_sort_pokemon(search_filtered_records)
+    dex_ids = set()
+    hidden_forms = []
+
+    if criteria.hide_forms:
+        for record in search_filtered_records:
+            if record.dex_id not in dex_ids:
+                hidden_forms.append(record)
+            dex_ids.add(record.dex_id)
+        return tuple(hidden_forms)
+
+    return search_filtered_records
 
 
 def normalise(pokemon_name: str) -> str:
@@ -125,3 +138,10 @@ def _match_type_and_record(record: Pokemon, criteria: Criteria) -> bool:
         (criteria.type1 is None and criteria.type2 == NO_SECOND_TYPE)
         and len(record.types) == 1
     )
+
+
+def _match_gen_and_record(record: Pokemon, criteria: Criteria) -> bool:
+    if not criteria.generations:
+        return True
+
+    return bool(record.generation in criteria.generations)
