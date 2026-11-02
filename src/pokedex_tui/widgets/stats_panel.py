@@ -90,5 +90,6 @@ class StatsPanel(Vertical):
     def clear_pokemon(self):
         self.query_one(".name-line", Static).content = ""
         self.query_one(".form-line", Static).content = ""
-        self.query_one(".stats-row", Horizontal).remove_children()
+        self.query_one(".stat-rows", Static).content = ""
         self.query_one(".total-row", Static).content = ""
+        self.query_one(".types-container", Horizontal).remove_children()
