@@ -5,13 +5,16 @@ from typing import ClassVar
 from textual.app import App
 from textual.binding import Binding, BindingType
 from textual.driver import Driver
+from textual.reactive import reactive
 from textual.types import CSSPathType
 
 from pokedex_tui.loader import PokedexDataError, load_pokemon
-from pokedex_tui.models import Pokemon
-from pokedex_tui.query import default_sort_pokemon, total_ranks
+from pokedex_tui.models import DEFAULT_SORT, Criteria, Pokemon
+from pokedex_tui.query import default_sort_pokemon, filter_and_sort, total_ranks
 from pokedex_tui.screens.browser import Browser
 from pokedex_tui.theme import APP_THEME
+from pokedex_tui.widgets.filter_bar import FilterBar
+from pokedex_tui.widgets.results import Results
 
 
 class PokedexApp(App):
@@ -31,14 +34,40 @@ class PokedexApp(App):
         self.csv_path = csv_path
         self.register_theme(APP_THEME)
         self.theme = APP_THEME.name
+        self.filtered_records = ()
 
     CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
     ENABLE_COMMAND_PALETTE = False
+    criteria = reactive(Criteria())
+    sort_order = reactive(DEFAULT_SORT, init=False)
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
+        Binding("g", "gen one", "gen_one", show=False),
     ]
+
+    def action_gen_one(self):
+        self.criteria.replace(generations=frozenset({1}))
+
+    def watch_criteria(self) -> None:
+        self.update_filtered_records()
+
+    def watch_sort_order(self) -> None:
+        self.update_filtered_records()
+
+    def update_filtered_records(self) -> None:
+        self.filtered_records = filter_and_sort(
+            self.all_records, self.criteria, self.sort_order
+        )
+        result_widget = self.screen.query_one(Results)
+        result_widget.update_records(self.filtered_records)
+
+    def on_filter_bar_criteria_changed(self, event: FilterBar.CriteriaChanged):
+        self.cirteria = event.criteria
+
+    def on_filter_bar_sort_changed(self, event: FilterBar.SortChanged):
+        self.sort_order = event.sort_order
 
     def on_mount(self) -> None:
         """Load pokemon csv data and push browser screen"""

@@ -1017,3 +1017,173 @@ async def test_details_pane_shows_the_rank_across_the_whole_pokedex(all_records)
         ivysaur = next(p for p in all_records if p.name == "Ivysaur")
         rank = total_ranks(all_records)[ivysaur.key]
         assert total_line.endswith(f"rank #{rank} of 1215")
+
+
+# --- Phase 4: filter and sort state (U1, PTI-9) -------------------------------------
+#
+# Names these tests expect (rename here if you change them):
+# - PokedexApp.criteria: reactive, starts at Criteria().
+# - PokedexApp.sort_order: reactive, starts at DEFAULT_SORT.
+# - PokedexApp.filtered_records: the current filtered and sorted tuple. Only the
+#   app sets it, by calling filter_and_sort, imported into app.py as
+#   "from pokedex_tui.query import filter_and_sort".
+# - FilterBar.CriteriaChanged(criteria) and FilterBar.SortChanged(sort_order):
+#   the messages the filter controls post upward. Each keeps its value in an
+#   attribute with the same name as the parameter.
+
+
+def table_names(app):
+    table = table_of(app)
+    return [row(table, i)[NAME] for i in range(table.row_count)]
+
+
+async def test_app_starts_with_default_criteria_and_sort():
+    from pokedex_tui.models import DEFAULT_SORT, Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert app.criteria == Criteria()
+        assert app.sort_order == DEFAULT_SORT
+
+
+async def test_filtered_records_start_as_every_record_in_dex_order(all_records):
+    from pokedex_tui.query import default_sort_pokemon
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert isinstance(app.filtered_records, tuple)
+        assert app.filtered_records == default_sort_pokemon(all_records)
+        assert table_of(app).row_count == 1215
+
+
+async def test_setting_criteria_refills_the_table():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        assert table_of(app).row_count == 151
+        assert len(app.filtered_records) == 151
+        assert table_names(app)[0] == "Bulbasaur"
+        assert table_names(app)[-1] == "Mew"
+
+
+async def test_table_rows_match_the_filtered_records():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="char")
+        await pilot.pause()
+        assert table_names(app) == [p.display_name for p in app.filtered_records]
+
+
+async def test_setting_the_sort_reorders_the_table():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.sort_order = SortOrder.for_field("total")
+        await pilot.pause()
+        assert table_of(app).row_count == 1215
+        assert table_names(app)[:2] == ["Eternatus Eternamax", "Mega Mewtwo X"]
+
+
+async def test_criteria_and_sort_work_together():
+    from pokedex_tui.models import Criteria, SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({1}))
+        app.sort_order = SortOrder.for_field("total")
+        await pilot.pause()
+        assert table_of(app).row_count == 151
+        assert table_names(app)[:3] == ["Mewtwo", "Dragonite", "Mew"]
+
+
+async def test_going_back_to_default_criteria_shows_every_record():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        app.criteria = Criteria()
+        await pilot.pause()
+        assert table_of(app).row_count == 1215
+
+
+async def test_criteria_changed_message_updates_the_app():
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.widgets.filter_bar import FilterBar
+
+    gen_1 = Criteria(generations=frozenset({1}))
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        bar = app.screen.query_one(FilterBar)
+        bar.post_message(FilterBar.CriteriaChanged(gen_1))
+        await pilot.pause()
+        assert app.criteria == gen_1
+        assert table_of(app).row_count == 151
+
+
+async def test_sort_changed_message_updates_the_app():
+    from pokedex_tui.models import SortOrder
+    from pokedex_tui.widgets.filter_bar import FilterBar
+
+    by_total = SortOrder.for_field("total")
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        bar = app.screen.query_one(FilterBar)
+        bar.post_message(FilterBar.SortChanged(by_total))
+        await pilot.pause()
+        assert app.sort_order == by_total
+        assert table_names(app)[0] == "Eternatus Eternamax"
+
+
+def test_messages_carry_their_values():
+    from pokedex_tui.models import Criteria, SortOrder
+    from pokedex_tui.widgets.filter_bar import FilterBar
+
+    criteria = Criteria(search="pika")
+    sort_order = SortOrder.for_field("speed")
+
+    assert FilterBar.CriteriaChanged(criteria).criteria == criteria
+    assert FilterBar.SortChanged(sort_order).sort_order == sort_order
+
+
+async def test_an_equal_value_does_not_run_the_query_again(monkeypatch):
+    import pokedex_tui.app as app_module
+    from pokedex_tui.models import Criteria, SortOrder
+
+    calls = []
+    real = app_module.filter_and_sort
+
+    def counting(*args, **kwargs):
+        calls.append(args)
+        return real(*args, **kwargs)
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        monkeypatch.setattr(app_module, "filter_and_sort", counting)
+
+        # New objects, but equal to the current values.
+        app.criteria = Criteria()
+        app.sort_order = SortOrder()
+        await pilot.pause()
+        assert calls == []
+
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        assert len(calls) == 1
