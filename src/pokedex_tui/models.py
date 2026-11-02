@@ -134,11 +134,10 @@ class SortOrder:
         return SortOrder(by=self.by, descending=not self.descending)
 
     def next_field(self):
-        for index, field_name in enumerate(SORT_FIELDS):
-            if field_name == self.by:
-                # wrap around to 0 if index + 1 equals the length of SORT_FIELDs
-                next_index = (index + 1) % len(SORT_FIELDS)
-                return SortOrder.for_field(SORT_FIELDS[next_index])
+        current_index = SORT_FIELDS.index(self.by)
+        # wrap around to 0 if index + 1 equals the length of SORT_FIELDs
+        next_index = (current_index + 1) % len(SORT_FIELDS)
+        return SortOrder.for_field(SORT_FIELDS[next_index])
 
 
 DEFAULT_SORT = SortOrder()

@@ -68,22 +68,37 @@ def filter_and_sort(
         )
     )
 
-    filtered_and_sorted_records = sorted(
-        filtered_records,
-        key=lambda pokemon: normalise(sort_in.by),
-        reverse=sort_in.descending,
-    )
-
     if criteria.hide_forms:
         dex_ids = set()
         hidden_forms = []
-        for record in filtered_and_sorted_records:
+        for record in filtered_records:
             if record.dex_id not in dex_ids:
                 hidden_forms.append(record)
             dex_ids.add(record.dex_id)
-        return tuple(hidden_forms)
+        filtered_records = tuple(hidden_forms)
 
-    return filtered_records
+    filtered_and_sorted_records = ()
+
+    if sort_in.by == "dex":
+        filtered_and_sorted_records = sorted(
+            filtered_records,
+            key=lambda pokemon: pokemon.dex_id,
+            reverse=sort_in.descending,
+        )
+    elif sort_in.by == "name":
+        filtered_and_sorted_records = sorted(
+            filtered_records,
+            key=lambda pokemon: normalise(pokemon.display_name),
+            reverse=sort_in.descending,
+        )
+    else:
+        filtered_and_sorted_records = sorted(
+            filtered_records,
+            key=lambda pokemon: getattr(pokemon, sort_in.by),
+            reverse=sort_in.descending,
+        )
+
+    return tuple(filtered_and_sorted_records)
 
 
 def normalise(pokemon_name: str) -> str:
