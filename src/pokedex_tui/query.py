@@ -4,7 +4,9 @@ from types import MappingProxyType
 
 from pokedex_tui.models import (
     DEFAULT_SORT,
+    GENERATIONS,
     NO_SECOND_TYPE,
+    TYPES,
     Criteria,
     Pokemon,
     SortOrder,
@@ -157,6 +159,51 @@ def _match_type_and_record(record: Pokemon, criteria: Criteria) -> bool:
         (criteria.type1 is None and criteria.type2 == NO_SECOND_TYPE)
         and len(record.types) == 1
     )
+
+
+# App Helpers
+def type_options(
+    slot,
+) -> tuple[None, *tuple[str, ...]] | tuple[None, str, *tuple[str, ...]]:
+    """return picker values based on slot for types"""
+    if slot == 1:
+        return (None, *TYPES)
+
+    return (None, NO_SECOND_TYPE, *TYPES)
+
+
+def generation_options():
+    """return picker values based on"""
+    return (None, *GENERATIONS)
+
+
+def type_counts(records: tuple[Pokemon, ...], criteria: Criteria, slot: int):
+    """return matching record counts based on how many type options match the given records"""
+    options = type_options(slot)
+    counts = {}
+
+    for option in options:
+        if slot == 1:
+            new_critreia = Criteria(
+                search=criteria.search,
+                type1=option,
+                type2=criteria.type2,
+                generations=criteria.generations,
+                hide_forms=criteria.hide_forms,
+            )
+            trial = new_critreia
+        else:
+            new_critreia = Criteria(
+                search=criteria.search,
+                type1=criteria.type1,
+                type2=option,
+                generations=criteria.generations,
+                hide_forms=criteria.hide_forms,
+            )
+            trial = new_critreia
+        counts[option] = len(filter_and_sort(records, trial))
+
+    return MappingProxyType(counts)
 
 
 def _match_gen_and_record(record: Pokemon, criteria: Criteria) -> bool:
