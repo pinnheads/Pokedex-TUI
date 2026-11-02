@@ -255,3 +255,126 @@ def test_replace_returns_new_criteria_and_leaves_original_alone():
 def test_replace_with_no_changes_gives_equal_criteria():
     c = Criteria(type1="Water")
     assert c.replace() == c
+
+
+# --- Phase 4: SortOrder (PTI-22) --------------------------------------------
+#
+# Names these tests expect (rename here if you chose different ones):
+# - SORT_FIELDS: the nine sort fields, in the order the s key cycles them.
+#   The stat fields use the same names as the Pokemon fields.
+# - SortOrder(by="dex", descending=False): an immutable sort choice.
+#   SortOrder.for_field(name) gives that field at its default direction,
+#   flipped() gives the other direction, next_field() gives the next field
+#   in SORT_FIELDS at its default direction (back to "dex" after "speed").
+
+
+def test_sort_fields_are_the_nine_in_cycle_order():
+    from pokedex_tui.models import SORT_FIELDS
+
+    assert SORT_FIELDS == (
+        "dex",
+        "name",
+        "total",
+        "hp",
+        "attack",
+        "defense",
+        "sp_atk",
+        "sp_def",
+        "speed",
+    )
+
+
+def test_stat_sort_fields_are_pokemon_field_names(make_pokemon):
+    from pokedex_tui.models import SORT_FIELDS
+
+    charizard = make_pokemon()
+    for name in SORT_FIELDS[2:]:
+        assert isinstance(getattr(charizard, name), int), name
+
+
+def test_default_sort_is_dex_ascending():
+    from pokedex_tui.models import SortOrder
+
+    order = SortOrder()
+
+    assert order.by == "dex"
+    assert order.descending is False
+
+
+@pytest.mark.parametrize(
+    ("name", "descending"),
+    [
+        ("dex", False),
+        ("name", False),
+        ("total", True),
+        ("hp", True),
+        ("attack", True),
+        ("defense", True),
+        ("sp_atk", True),
+        ("sp_def", True),
+        ("speed", True),
+    ],
+)
+def test_each_field_starts_at_its_default_direction(name, descending):
+    from pokedex_tui.models import SortOrder
+
+    assert SortOrder.for_field(name) == SortOrder(by=name, descending=descending)
+
+
+def test_for_field_rejects_an_unknown_field():
+    from pokedex_tui.models import SortOrder
+
+    with pytest.raises(ValueError):
+        SortOrder.for_field("weight")
+
+
+def test_flipped_gives_the_other_direction_and_leaves_the_original_alone():
+    from pokedex_tui.models import SortOrder
+
+    order = SortOrder.for_field("total")
+    flipped = order.flipped()
+
+    assert flipped == SortOrder(by="total", descending=False)
+    assert order == SortOrder(by="total", descending=True)
+    assert flipped.flipped() == order
+
+
+def test_next_field_follows_the_cycle_and_wraps_round():
+    from pokedex_tui.models import SORT_FIELDS, SortOrder
+
+    order = SortOrder()
+    seen = []
+    for _ in SORT_FIELDS:
+        seen.append(order.by)
+        order = order.next_field()
+
+    assert tuple(seen) == SORT_FIELDS
+    assert order == SortOrder()
+
+
+def test_next_field_starts_at_the_default_direction():
+    from pokedex_tui.models import SortOrder
+
+    # Name flipped to descending; the next field, Total, still starts
+    # descending, and the one after, HP, too.
+    order = SortOrder.for_field("name").flipped()
+
+    assert order.next_field() == SortOrder(by="total", descending=True)
+    assert order.next_field().flipped().next_field() == SortOrder(
+        by="hp", descending=True
+    )
+
+
+def test_sort_order_is_immutable():
+    from pokedex_tui.models import SortOrder
+
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        SortOrder().descending = True  # type: ignore[misc]
+
+
+def test_sort_order_compares_and_hashes_by_value():
+    from pokedex_tui.models import SortOrder
+
+    assert SortOrder() == SortOrder(by="dex", descending=False)
+    assert len({SortOrder(), SortOrder(by="dex")}) == 1
+    assert SortOrder() != SortOrder(by="dex", descending=True)
