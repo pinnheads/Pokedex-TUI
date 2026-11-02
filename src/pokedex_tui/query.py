@@ -173,7 +173,7 @@ def type_options(
 
 
 def generation_options():
-    """return picker values based on"""
+    """return picker values for generations slot"""
     return (None, *GENERATIONS)
 
 
