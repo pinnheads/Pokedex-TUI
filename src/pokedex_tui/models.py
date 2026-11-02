@@ -118,15 +118,16 @@ class SortOrder:
     by: str = field(default="dex")
     descending: bool = field(default=False)
 
-    def for_field(self, name: str = "dex"):
+    @classmethod
+    def for_field(cls, name: str = "dex"):
         """Returns new SortOrder by the given name"""
         if name not in SORT_FIELDS:
             raise ValueError(f"provided name: ({name}) is not recognized")
 
-        if name == "dex":
-            return SortOrder(by=name, descending=False)
+        if name == "dex" or name == "name":
+            return cls(by=name, descending=False)
 
-        return SortOrder(by=name, descending=True)
+        return cls(by=name, descending=True)
 
     def flipped(self):
         """Returns the new SortOrder but with reverse sorting direction of the current one"""
@@ -135,7 +136,9 @@ class SortOrder:
     def next_field(self):
         for index, field_name in enumerate(SORT_FIELDS):
             if field_name == self.by:
-                return SORT_FIELDS[index + 1]
+                # wrap around to 0 if index + 1 equals the length of SORT_FIELDs
+                next_index = (index + 1) % len(SORT_FIELDS)
+                return SortOrder.for_field(SORT_FIELDS[next_index])
 
 
 DEFAULT_SORT = SortOrder()
