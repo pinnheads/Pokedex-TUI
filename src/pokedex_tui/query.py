@@ -77,6 +77,16 @@ def filter_and_sort(
             dex_ids.add(record.dex_id)
         filtered_records = tuple(hidden_forms)
 
+    if normalised_search and sort_in == DEFAULT_SORT:
+        return tuple(
+            sorted(
+                filtered_records,
+                key=lambda pokemon: (
+                    not normalise(pokemon.display_name).startswith(normalised_search)
+                ),
+            )
+        )
+
     return tuple(
         sorted(
             filtered_records,
