@@ -102,8 +102,7 @@ class Results(Widget):
 
         if self._pending_key and event.row_key.value == self._pending_key:
             self._pending_key = None
-
-        if not self._pending_key and self.selected_key == event.row_key.value:
+        elif not self._pending_key and self.selected_key == event.row_key.value:
             return
 
         self.selected_key = event.row_key.value
