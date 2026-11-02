@@ -51,7 +51,7 @@ def filter_and_sort(
     all_records: tuple[Pokemon, ...],
     criteria: Criteria,
     sort_in: SortOrder = DEFAULT_SORT,
-):
+) -> tuple[Pokemon, ...]:
 
     if criteria.is_default and sort_in == DEFAULT_SORT:
         return default_sort_pokemon(all_records)
@@ -77,28 +77,13 @@ def filter_and_sort(
             dex_ids.add(record.dex_id)
         filtered_records = tuple(hidden_forms)
 
-    filtered_and_sorted_records = ()
-
-    if sort_in.by == "dex":
-        filtered_and_sorted_records = sorted(
+    return tuple(
+        sorted(
             filtered_records,
-            key=lambda pokemon: pokemon.dex_id,
+            key=lambda pokemon: _sort_key(pokemon, sort_in.by),
             reverse=sort_in.descending,
         )
-    elif sort_in.by == "name":
-        filtered_and_sorted_records = sorted(
-            filtered_records,
-            key=lambda pokemon: normalise(pokemon.display_name),
-            reverse=sort_in.descending,
-        )
-    else:
-        filtered_and_sorted_records = sorted(
-            filtered_records,
-            key=lambda pokemon: getattr(pokemon, sort_in.by),
-            reverse=sort_in.descending,
-        )
-
-    return tuple(filtered_and_sorted_records)
+    )
 
 
 def normalise(pokemon_name: str) -> str:
@@ -169,3 +154,11 @@ def _match_gen_and_record(record: Pokemon, criteria: Criteria) -> bool:
         return True
 
     return record.generation in criteria.generations
+
+
+def _sort_key(pokemon: Pokemon, by: str) -> int | str:
+    if by == "dex":
+        return pokemon.dex_id
+    if by == "name":
+        return normalise(pokemon.display_name)
+    return getattr(pokemon, by)
