@@ -52,15 +52,19 @@ def filter_and_sort(
     criteria: Criteria,
     sort_in: SortOrder = DEFAULT_SORT,
 ):
+
+    if criteria.is_default:
+        return default_sort_pokemon(all_records)
+
     normalised_search = normalise(criteria.search)
 
     filtered_records = default_sort_pokemon(
         tuple(
             record
             for record in all_records
-            if _match_search_and_record(record=record, search_text=normalised_search)
-            and _match_type_and_record(record=record, criteria=criteria)
+            if _match_type_and_record(record=record, criteria=criteria)
             and _match_gen_and_record(record=record, criteria=criteria)
+            and _match_search_and_record(record=record, search_text=normalised_search)
         )
     )
 
