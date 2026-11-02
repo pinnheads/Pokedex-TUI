@@ -23,6 +23,17 @@ TYPES: tuple[str, ...] = (
 )
 GENERATIONS: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8, 9)
 NO_SECOND_TYPE: str = "(single type)"
+SORT_FIELDS: tuple[str, ...] = (
+    "dex",
+    "name",
+    "total",
+    "hp",
+    "attack",
+    "defense",
+    "sp_atk",
+    "sp_def",
+    "speed",
+)
 
 
 @dataclass(frozen=True)
@@ -106,6 +117,25 @@ class SortOrder:
 
     by: str = field(default="dex")
     descending: bool = field(default=False)
+
+    def for_field(self, name):
+        """Returns new SortOrder by the given name"""
+        if name not in SORT_FIELDS:
+            raise ValueError(f"provided name: ({name}) is not recognized")
+
+        if name == "dex":
+            return SortOrder(by=name, descending=False)
+
+        return SortOrder(by=name, descending=True)
+
+    def filpped(self):
+        """Returns the new SortOrder but with reverse sorting direction of the current one"""
+        return SortOrder(by=self.by, descending=not self.descending)
+
+    def next_field(self):
+        for index, field_name in enumerate(SORT_FIELDS):
+            if field_name == self.by:
+                return SORT_FIELDS[index + 1]
 
 
 DEFAULT_SORT = SortOrder()
