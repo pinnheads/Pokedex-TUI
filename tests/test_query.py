@@ -613,3 +613,55 @@ def test_sorting_applies_after_filtering(query_records):
         ("Charmeleon", None),  # 80
         ("Charmander", None),  # 65
     ]
+
+
+# --- Q8: search ranking (PTI-12) -----------------------------------------------
+
+
+def test_names_starting_with_the_search_come_first(query_records):
+    # "me": Mega Charizard X and Meganium start with it. Charmeleon, Mr. Mime
+    # and Yanmega only contain it. Charmeleon has the lowest Dex number of
+    # all five, so plain Dex order would put it first.
+    assert _names(_run(query_records, search="me")) == [
+        ("Charizard", "Mega Charizard X"),
+        ("Meganium", None),
+        ("Charmeleon", None),
+        ("Mr. Mime", None),
+        ("Yanmega", None),
+    ]
+
+
+def test_ranking_compares_without_accents(make_pokemon):
+    # Made-up names: "Bébé" starts with "bebe" once the accents are gone, so
+    # it comes first even though its Dex number is the highest.
+    records = (
+        make_pokemon(dex_id=10, name="Zebebe"),
+        make_pokemon(dex_id=669, name="Flabébé"),
+        make_pokemon(dex_id=700, name="Bébé"),
+    )
+
+    found = [p.name for p in _run(records, search="BEBE")]
+
+    assert found == ["Bébé", "Zebebe", "Flabébé"]
+
+
+def test_ranking_is_off_when_the_user_picks_a_sort(query_records):
+    found = _names(_run(query_records, search="me", sort=_sort("total")))
+
+    assert found == [
+        ("Charizard", "Mega Charizard X"),  # 634
+        ("Meganium", None),  # 525
+        ("Yanmega", None),  # 515
+        ("Mr. Mime", None),  # 460
+        ("Charmeleon", None),  # 405
+    ]
+
+
+def test_ranking_is_off_for_dex_descending(query_records):
+    found = _names(_run(query_records, search="me", sort=_sort("dex", True)))
+
+    assert found[0] == ("Yanmega", None)
+
+
+def test_an_empty_search_gives_plain_dex_order(query_records):
+    assert _run(query_records, search="") == query_records
