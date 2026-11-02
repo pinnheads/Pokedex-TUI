@@ -452,3 +452,52 @@ def test_hide_forms_runs_after_the_other_filters(query_records):
     found = _names(_run(query_records, search="mega", hide_forms=True))
 
     assert ("Charizard", "Mega Charizard X") in found
+
+
+# --- Q6: all criteria together (PTI-28) ----------------------------------------
+
+
+def test_default_criteria_return_everything_in_dex_order(query_records):
+    shuffled = list(reversed(query_records))
+
+    assert _run(shuffled) == query_records
+
+
+def test_search_and_type_combine(query_records):
+    assert _names(_run(query_records, search="mega", type1="Grass")) == [
+        ("Meganium", None)
+    ]
+
+
+def test_type_and_generation_combine(query_records):
+    found = _names(_run(query_records, type1="Flying", generations=frozenset({1})))
+
+    assert found == [("Charizard", None), ("Farfetch'd", None)]
+
+
+def test_all_four_criteria_combine(query_records):
+    found = _run(
+        query_records,
+        search="char",
+        type1="Fire",
+        generations=frozenset({1, 6}),
+        hide_forms=True,
+    )
+
+    assert _names(found) == [
+        ("Charmander", None),
+        ("Charmeleon", None),
+        ("Charizard", None),
+    ]
+
+
+def test_a_combination_with_no_matches_returns_an_empty_tuple(query_records):
+    # No Water type in Gen 1 in the fixture list.
+    assert _run(query_records, type1="Water", generations=frozenset({1})) == ()
+
+
+def test_same_inputs_give_equal_results(query_records):
+    first = _run(query_records, search="a", type1="Flying")
+    second = _run(query_records, search="a", type1="Flying")
+
+    assert first == second
