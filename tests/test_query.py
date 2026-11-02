@@ -665,3 +665,96 @@ def test_ranking_is_off_for_dex_descending(query_records):
 
 def test_an_empty_search_gives_plain_dex_order(query_records):
     assert _run(query_records, search="") == query_records
+
+
+# --- Q9: picker options and match counts (PTI-21) ------------------------------
+
+
+def test_first_type_options_are_any_then_the_18_types():
+    from pokedex_tui.models import TYPES
+    from pokedex_tui.query import type_options
+
+    assert type_options(1) == (None, *TYPES)
+
+
+def test_second_type_options_add_none_after_any():
+    from pokedex_tui.models import NO_SECOND_TYPE, TYPES
+    from pokedex_tui.query import type_options
+
+    assert type_options(2) == (None, NO_SECOND_TYPE, *TYPES)
+
+
+def test_generation_options_are_all_then_1_to_9():
+    from pokedex_tui.query import generation_options
+
+    assert generation_options() == (None, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+
+def test_type_counts_have_one_entry_per_real_option():
+    from pokedex_tui.models import NO_SECOND_TYPE, TYPES, Criteria
+    from pokedex_tui.query import type_counts
+
+    assert tuple(type_counts((), Criteria(), 1)) == TYPES
+    assert tuple(type_counts((), Criteria(), 2)) == (NO_SECOND_TYPE, *TYPES)
+
+
+def test_type_counts_match_the_filter_for_each_type(query_records):
+    from pokedex_tui.models import TYPES, Criteria
+    from pokedex_tui.query import type_counts
+
+    criteria = Criteria(generations=frozenset({1}))
+    counts = type_counts(query_records, criteria, 1)
+
+    for type_name in TYPES:
+        expected = len(_run(query_records, generations=frozenset({1}), type1=type_name))
+        assert counts[type_name] == expected, type_name
+
+
+def test_a_type_with_no_matches_counts_zero(query_records):
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.query import type_counts
+
+    counts = type_counts(query_records, Criteria(generations=frozenset({1})), 1)
+
+    assert counts["Water"] == 0
+    assert counts["Fire"] == 3
+
+
+def test_type_counts_follow_the_search(query_records):
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.query import type_counts
+
+    assert type_counts(query_records, Criteria(), 1)["Flying"] == 5
+    assert type_counts(query_records, Criteria(search="char"), 1)["Flying"] == 1
+
+
+def test_first_slot_counts_ignore_the_type_already_in_that_slot(query_records):
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.query import type_counts
+
+    counts = type_counts(query_records, Criteria(type1="Fire"), 1)
+
+    assert counts["Water"] == 2
+
+
+def test_second_slot_counts_use_the_first_slot(query_records):
+    from pokedex_tui.models import NO_SECOND_TYPE, Criteria
+    from pokedex_tui.query import type_counts
+
+    counts = type_counts(query_records, Criteria(type1="Fire"), 2)
+
+    assert counts["Flying"] == 1  # Charizard
+    assert counts["Dragon"] == 1  # Mega Charizard X
+    assert counts["Fire"] == 4  # Fire twice counts as Fire once
+    assert counts[NO_SECOND_TYPE] == 2  # Charmander, Charmeleon
+    assert counts["Water"] == 0
+
+
+def test_type_counts_are_read_only(query_records):
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.query import type_counts
+
+    counts = type_counts(query_records, Criteria(), 1)
+
+    with pytest.raises(TypeError):
+        counts["Fire"] = 99  # type: ignore[index]
