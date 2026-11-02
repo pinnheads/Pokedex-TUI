@@ -86,3 +86,9 @@ class StatsPanel(Vertical):
         )
         total_line = total_label.append(text=total_value).append(text=rank_line)
         self.query_one(selector=".total-row", expect_type=Static).content = total_line
+
+    def clear_pokemon(self):
+        self.query_one(".name-line", Static).content = ""
+        self.query_one(".form-line", Static).content = ""
+        self.query_one(".stats-row", Horizontal).remove_children()
+        self.query_one(".total-row", Static).content = ""

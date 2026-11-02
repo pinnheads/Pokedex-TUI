@@ -48,6 +48,10 @@ class Results(Widget):
             super().__init__()
             self.key = key
 
+    class SelectionCleared(Message):
+        def __init__(self) -> None:
+            super().__init__()
+
     def __init__(
         self,
         *children: Widget,
@@ -68,6 +72,8 @@ class Results(Widget):
         )
         self.all_records = all_records
         self.current_marker = None
+        self.selected_key: str | None = None
+        self.row_positions: dict = {}
 
     def compose(self) -> ComposeResult:
         with Box(title="Results"):
@@ -90,6 +96,7 @@ class Results(Widget):
         if event.row_key.value is None:
             return
 
+        self.selected_key = event.row_key.value
         # emit an event on current highlighted row change
         self.post_message(self.SelectionChanged(event.row_key.value))
 
@@ -122,7 +129,7 @@ class Results(Widget):
         table.clear()
         self.current_marker = None
         for pokemon in records:
-            table.add_row(
+            row_key = table.add_row(
                 "",
                 Text(f"{pokemon.dex_id:04}", style=Style(color=PALETTE.muted_text)),
                 pokemon.display_name,
@@ -130,3 +137,16 @@ class Results(Widget):
                 Text(str(pokemon.total), justify="right"),
                 key=pokemon.key,
             )
+            self.row_positions[pokemon.key] = table.get_row_index(row_key)
+
+        # Check if there are no rows
+        if not self.row_positions:
+            self.selected_key = None
+            self.SelectionCleared()
+
+        if self.selected_key and self.selected_key in self.row_positions:
+            table.move_cursor(row=self.row_positions[self.selected_key], scroll=True)
+            self.SelectionChanged(key=self.selected_key)
+        else:
+            table.move_cursor(row=0, scroll=True)
+            self.SelectionChanged(next(iter(self.row_positions)))

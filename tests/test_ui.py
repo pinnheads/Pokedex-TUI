@@ -1187,3 +1187,196 @@ async def test_an_equal_value_does_not_run_the_query_again(monkeypatch):
         app.criteria = Criteria(generations=frozenset({1}))
         await pilot.pause()
         assert len(calls) == 1
+
+
+# --- Phase 4: keep the selection when the list changes (U2, PTI-8) ------------------
+#
+# Names these tests expect (rename here if you change them):
+# - Results.update_records(records) keeps the cursor on the selected record
+#   if it is still in the new list, otherwise puts it on the first row.
+# - Results.row_positions: dict of record key -> row index, rebuilt on every
+#   refill.
+# - Results.SelectionCleared(): message posted when a refill leaves no rows.
+# - Browser.selected_key: the selected record's key, or None when the list is
+#   empty. Set from Results.SelectionChanged and Results.SelectionCleared.
+# - StatsPanel.clear_pokemon(): empties every line of the Details pane except
+#   the hint line.
+
+
+async def select_row_by_key(app, pilot, key):
+    table = table_of(app)
+    table.move_cursor(row=table.get_row_index(key))
+    await pilot.pause()
+
+
+def key_of(all_records, name, form=None):
+    return next(p.key for p in all_records if p.name == name and p.form == form)
+
+
+def _collect_once(keys):
+    """Like _collect, but counts each posted message once. The hook sees a
+    bubbling message again at every parent it passes through."""
+    from pokedex_tui.widgets.results import Results
+
+    seen = set()
+
+    def hook(message):
+        if isinstance(message, Results.SelectionChanged) and id(message) not in seen:
+            seen.add(id(message))
+            keys.append(message.key)
+
+    return hook
+
+
+def browser_selected_key(app):
+    from typing import cast
+
+    from pokedex_tui.screens.browser import Browser
+
+    return cast(Browser, app.screen).selected_key
+
+
+def row_is_visible(table, index):
+    top = round(table.scroll_y)
+    return top <= index < top + table.scrollable_content_region.height
+
+
+async def test_selection_stays_on_a_record_that_is_still_listed(all_records):
+    from pokedex_tui.models import Criteria
+
+    charizard = key_of(all_records, "Charizard")
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await select_row_by_key(app, pilot, charizard)
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        table = table_of(app)
+        assert table.row_count == 151
+        assert selected_name(table) == "Charizard"
+        assert browser_selected_key(app) == charizard
+        assert panel_name_line(app) == "#0006 Charizard"
+
+
+async def test_kept_selection_is_scrolled_into_view(all_records):
+    from pokedex_tui.models import SortOrder
+
+    bulbasaur = key_of(all_records, "Bulbasaur")
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        # Bulbasaur starts on the first row. Sorted by Total it moves far down.
+        app.sort_order = SortOrder.for_field("total")
+        await pilot.pause()
+        table = table_of(app)
+        assert browser_selected_key(app) == bulbasaur
+        assert selected_name(table) == "Bulbasaur"
+        assert table.cursor_row > 100
+        assert row_is_visible(table, table.cursor_row)
+
+
+async def test_marker_is_on_the_kept_row(all_records):
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await select_row_by_key(app, pilot, key_of(all_records, "Charizard"))
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        table = table_of(app)
+        assert marker_rows(table) == [table.cursor_row]
+
+
+async def test_selection_moves_to_the_first_row_when_its_record_is_gone(all_records):
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await select_row_by_key(app, pilot, key_of(all_records, "Chikorita"))
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        table = table_of(app)
+        assert table.cursor_row == 0
+        assert selected_name(table) == "Bulbasaur"
+        assert browser_selected_key(app) == key_of(all_records, "Bulbasaur")
+        assert panel_name_line(app) == "#0001 Bulbasaur"
+        assert marker_rows(table) == [0]
+
+
+async def test_an_empty_list_clears_the_selection_and_the_details_pane():
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.widgets.stats_panel import StatsPanel
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="zzzz")
+        await pilot.pause()
+        assert table_of(app).row_count == 0
+        assert browser_selected_key(app) is None
+        panel = app.screen.query_one(StatsPanel)
+        for line in (".name-line", ".form-line", ".stat-rows", ".total-row"):
+            assert str(panel.query_one(line).render()).strip() == "", line
+        assert len(panel.query_one(".types-container").children) == 0
+
+
+async def test_the_list_coming_back_after_empty_selects_the_first_row(all_records):
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="zzzz")
+        await pilot.pause()
+        app.criteria = Criteria()
+        await pilot.pause()
+        table = table_of(app)
+        assert table.cursor_row == 0
+        assert browser_selected_key(app) == key_of(all_records, "Bulbasaur")
+        assert panel_name_line(app) == "#0001 Bulbasaur"
+
+
+async def test_a_refill_posts_selection_changed_once_with_the_kept_key(all_records):
+    from pokedex_tui.models import Criteria
+
+    charizard = key_of(all_records, "Charizard")
+    keys = []
+    app = make_app()
+    async with app.run_test(size=SIZE, message_hook=_collect_once(keys)) as pilot:
+        await start(app, pilot)
+        await select_row_by_key(app, pilot, charizard)
+        keys.clear()
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        assert keys == [charizard]
+
+
+async def test_a_refill_to_the_first_row_posts_selection_changed_once(all_records):
+    from pokedex_tui.models import Criteria
+
+    keys = []
+    app = make_app()
+    async with app.run_test(size=SIZE, message_hook=_collect_once(keys)) as pilot:
+        await start(app, pilot)
+        await select_row_by_key(app, pilot, key_of(all_records, "Chikorita"))
+        keys.clear()
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        assert keys == [key_of(all_records, "Bulbasaur")]
+
+
+async def test_row_positions_match_the_new_rows():
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.widgets.results import Results
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="char")
+        await pilot.pause()
+        positions = app.screen.query_one(Results).row_positions
+        assert positions == {
+            p.key: index for index, p in enumerate(app.filtered_records)
+        }
