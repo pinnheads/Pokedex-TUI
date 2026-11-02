@@ -388,3 +388,67 @@ def test_any_with_no_second_type_gives_every_single_type(query_records):
 
     assert all(p.type2 is None for p in found)
     assert len(found) == 7
+
+
+# --- Q5: generation filter and hide forms (PTI-34) -----------------------------
+
+
+def test_no_generation_set_keeps_everything(query_records):
+    assert _run(query_records, generations=frozenset()) == query_records
+
+
+def test_gen_6_includes_the_mega_form(query_records):
+    found = _names(_run(query_records, generations=frozenset({6})))
+
+    assert found == [("Charizard", "Mega Charizard X"), ("Flabébé", None)]
+
+
+def test_gen_1_leaves_out_the_mega_and_alolan_forms(query_records):
+    found = _run(query_records, generations=frozenset({1}))
+
+    assert len(found) == 8
+    assert all(not p.is_form or p.form == "Female" for p in found)
+    assert ("Raichu", "Alolan Raichu") not in _names(found)
+
+
+def test_gen_7_includes_the_alolan_form(query_records):
+    found = _names(_run(query_records, generations=frozenset({7})))
+
+    assert found == [("Raichu", "Alolan Raichu"), ("Type: Null", None)]
+
+
+def test_two_generations_return_both(query_records):
+    found = _names(_run(query_records, generations=frozenset({3, 8})))
+
+    assert found == [("Pelipper", None), ("Cramorant", None)]
+
+
+def test_hide_forms_gives_one_row_per_dex_number(query_records):
+    found = _run(query_records, hide_forms=True)
+
+    dex_numbers = [p.dex_id for p in found]
+    assert len(dex_numbers) == len(set(dex_numbers))
+    assert set(dex_numbers) == {p.dex_id for p in query_records}
+
+
+def test_hide_forms_keeps_the_first_row_of_each_dex_number(query_records):
+    found = _names(_run(query_records, hide_forms=True))
+
+    assert ("Charizard", None) in found
+    assert ("Charizard", "Mega Charizard X") not in found
+    assert ("Raichu", None) in found
+    assert ("Raichu", "Alolan Raichu") not in found
+
+
+def test_hide_forms_keeps_a_dex_number_whose_only_row_has_a_form(query_records):
+    # Nidoran (Female) has no row with a blank form. Dropping every row with
+    # a form would lose it.
+    assert ("Nidoran", "Female") in _names(_run(query_records, hide_forms=True))
+
+
+def test_hide_forms_runs_after_the_other_filters(query_records):
+    # The base Charizard doesn't match "mega", so the Mega is the first
+    # matching row for Dex #6 and is kept.
+    found = _names(_run(query_records, search="mega", hide_forms=True))
+
+    assert ("Charizard", "Mega Charizard X") in found
