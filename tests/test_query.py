@@ -254,3 +254,137 @@ def test_the_sort_argument_can_be_left_out(query_records):
     from pokedex_tui.query import filter_and_sort
 
     assert filter_and_sort(query_records, Criteria()) == query_records
+
+
+# --- Q2: name normalisation (PTI-45) -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Flabébé", "flabebe"),
+        ("FLABEBE", "flabebe"),
+        ("  char  ", "char"),
+        ("Mr. Mime", "mr mime"),
+        ("mr mime", "mr mime"),
+        ("Farfetch'd", "farfetchd"),
+        ("Type: Null", "type null"),
+        ("Ho-Oh", "hooh"),
+        ("", ""),
+        ("   ", ""),
+    ],
+)
+def test_normalise(text, expected):
+    from pokedex_tui.query import normalise
+
+    assert normalise(text) == expected
+
+
+def test_normalise_uses_case_folding_not_lower_case():
+    from pokedex_tui.query import normalise
+
+    # "ß".lower() is still "ß"; case folding turns it into "ss".
+    assert normalise("Straße") == normalise("STRASSE")
+
+
+# --- Q3: name search (PTI-39) ---------------------------------------------------
+
+
+def test_search_finds_names_containing_the_text(query_records):
+    assert _names(_run(query_records, search="char")) == [
+        ("Charmander", None),
+        ("Charmeleon", None),
+        ("Charizard", None),
+        ("Charizard", "Mega Charizard X"),
+    ]
+
+
+def test_search_matches_the_form_name(query_records):
+    assert _names(_run(query_records, search="ALOLAN")) == [("Raichu", "Alolan Raichu")]
+
+
+def test_mega_finds_the_mega_form_and_names_containing_mega(query_records):
+    found = _names(_run(query_records, search="mega"))
+
+    assert ("Charizard", "Mega Charizard X") in found
+    # Correct substring matches, even though they are not Megas.
+    assert ("Meganium", None) in found
+    assert ("Yanmega", None) in found
+    assert len(found) == 3
+
+
+@pytest.mark.parametrize("text", ["flabebe", "Flabébé", "FLABEBE"])
+def test_search_ignores_accents_and_case(query_records, text):
+    assert _names(_run(query_records, search=text)) == [("Flabébé", None)]
+
+
+@pytest.mark.parametrize(
+    ("text", "name"),
+    [
+        ("mr mime", "Mr. Mime"),
+        ("mr. mime", "Mr. Mime"),
+        ("farfetchd", "Farfetch'd"),
+        ("farfetch'd", "Farfetch'd"),
+        ("type null", "Type: Null"),
+        ("type: null", "Type: Null"),
+    ],
+)
+def test_search_ignores_punctuation(query_records, text, name):
+    assert _names(_run(query_records, search=text)) == [(name, None)]
+
+
+def test_search_ignores_spaces_at_the_ends(query_records):
+    assert _run(query_records, search="  mime  ") == _run(query_records, search="mime")
+
+
+def test_search_of_only_spaces_returns_everything(query_records):
+    assert _run(query_records, search="   ") == query_records
+
+
+def test_search_that_matches_nothing_returns_an_empty_tuple(query_records):
+    assert _run(query_records, search="zzz") == ()
+
+
+# --- Q4: type filter (PTI-37) ---------------------------------------------------
+
+
+def test_type_any_any_keeps_everything(query_records):
+    assert _run(query_records, type1=None, type2=None) == query_records
+
+
+def test_one_type_matches_either_slot(query_records):
+    # Psychic is Mr. Mime's first type and Alolan Raichu's second.
+    expected = [("Raichu", "Alolan Raichu"), ("Mr. Mime", None)]
+
+    assert _names(_run(query_records, type1="Psychic")) == expected
+    assert _names(_run(query_records, type2="Psychic")) == expected
+
+
+def test_two_types_match_in_either_order(query_records):
+    expected = [("Pelipper", None), ("Cramorant", None)]
+
+    assert _names(_run(query_records, type1="Water", type2="Flying")) == expected
+    assert _names(_run(query_records, type1="Flying", type2="Water")) == expected
+
+
+def test_the_same_type_twice_counts_as_one(query_records):
+    assert _run(query_records, type1="Fire", type2="Fire") == _run(
+        query_records, type1="Fire"
+    )
+
+
+def test_a_type_with_no_second_type_gives_pure_single_types(query_records):
+    from pokedex_tui.models import NO_SECOND_TYPE
+
+    found = _run(query_records, type1="Fire", type2=NO_SECOND_TYPE)
+
+    assert _names(found) == [("Charmander", None), ("Charmeleon", None)]
+
+
+def test_any_with_no_second_type_gives_every_single_type(query_records):
+    from pokedex_tui.models import NO_SECOND_TYPE
+
+    found = _run(query_records, type1=None, type2=NO_SECOND_TYPE)
+
+    assert all(p.type2 is None for p in found)
+    assert len(found) == 7
