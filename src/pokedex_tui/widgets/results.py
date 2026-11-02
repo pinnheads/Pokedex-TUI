@@ -73,6 +73,7 @@ class Results(Widget):
         self.all_records = all_records
         self.current_marker = None
         self.selected_key: str | None = None
+        self._pending_key: str | None = None
         self.row_positions: dict = {}
 
     def compose(self) -> ComposeResult:
@@ -94,6 +95,15 @@ class Results(Widget):
         """Updates marker position based on the highlighted row"""
 
         if event.row_key.value is None:
+            return
+
+        if self._pending_key and event.row_key.value != self._pending_key:
+            return
+
+        if self._pending_key and event.row_key.value == self._pending_key:
+            self._pending_key = None
+
+        if not self._pending_key and self.selected_key == event.row_key.value:
             return
 
         self.selected_key = event.row_key.value
@@ -128,6 +138,7 @@ class Results(Widget):
         table = self.query_one(DataTable)
         table.clear()
         self.current_marker = None
+        self.row_positions = {}
         for pokemon in records:
             row_key = table.add_row(
                 "",
@@ -142,11 +153,13 @@ class Results(Widget):
         # Check if there are no rows
         if not self.row_positions:
             self.selected_key = None
-            self.SelectionCleared()
+            message = self.SelectionCleared()
+            self.post_message(message)
+            return
 
         if self.selected_key and self.selected_key in self.row_positions:
+            self._pending_key = self.selected_key
             table.move_cursor(row=self.row_positions[self.selected_key], scroll=True)
-            self.SelectionChanged(key=self.selected_key)
         else:
+            self._pending_key = next(iter(self.row_positions))
             table.move_cursor(row=0, scroll=True)
-            self.SelectionChanged(next(iter(self.row_positions)))
