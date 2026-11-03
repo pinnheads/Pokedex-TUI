@@ -167,8 +167,10 @@ class Results(Widget):
 
         # show rows and turn off empty rows message if there are rows to display
         self.query_one(".headings", Static).display = True
-        table.display = True
-        table.focus(scroll_visible=False)
+        # focus on table only when the table was hidden from the empty state message
+        if not table.display:
+            table.display = True
+            table.focus(scroll_visible=False)
         self.query_one("#empty-message").display = False
 
         if self.selected_key and self.selected_key in self.row_positions:
