@@ -80,6 +80,10 @@ class Results(Widget):
         with Box(title="Results"):
             yield Static(self.header_row_text(), classes="headings")
             yield self.ExtendedTable(cursor_type="row")
+            yield Static(
+                content="No Pokémon match these filters. Press r to reset.",
+                id="empty-message",
+            )
 
     def header_row_text(self) -> Text:
         """Headings for the table columns, using the same widths as the table"""
@@ -154,7 +158,18 @@ class Results(Widget):
             self.selected_key = None
             message = self.SelectionCleared()
             self.post_message(message)
+            # hide table and headings when no rows to dispaly
+            self.query_one(".headings", Static).display = False
+            table.display = False
+            # show appropriate message to the user on empty rows
+            self.query_one("#empty-message").display = True
             return
+
+        # show rows and turn off empty rows message if there are rows to display
+        self.query_one(".headings", Static).display = True
+        table.display = True
+        table.focus(scroll_visible=False)
+        self.query_one("#empty-message").display = False
 
         if self.selected_key and self.selected_key in self.row_positions:
             self._pending_key = self.selected_key
