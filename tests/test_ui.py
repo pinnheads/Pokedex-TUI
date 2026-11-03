@@ -386,7 +386,7 @@ async def test_footer_shows_only_working_keys():
             for _, binding, enabled, _ in app.active_bindings.values()
             if binding.show and enabled
         ]
-        assert sorted(shown) == ["Move", "Quit"]
+        assert sorted(shown) == ["Move", "Quit", "Search"]
 
 
 async def test_move_key_shows_both_arrows():
@@ -1650,11 +1650,14 @@ async def test_sort_box_shows_the_sort_in_words():
         assert " ".join(box_value_text(app, "sort").split()) == "Dex # ascending"
 
 
-async def test_search_box_starts_empty():
+async def test_search_box_starts_with_no_search_text():
+    # U5 swaps the placeholder for an Input, which shows "name or form"
+    # until the user types.
     app = make_app()
     async with app.run_test(size=SIZE) as pilot:
         await start(app, pilot)
-        assert box_value_text(app, "search-bar").strip() == ""
+        assert box_value_text(app, "search-bar").strip() in ("", "name or form")
+        assert app.criteria.search == ""
 
 
 async def test_tab_moves_through_the_boxes_then_the_table():
@@ -1698,3 +1701,206 @@ async def test_only_the_focused_filter_box_has_an_accent_border():
                     assert (titles, lines) == ({PALETTE.accent}, {PALETTE.accent})
                 else:
                     assert (titles, lines) == ({PALETTE.muted_text}, {PALETTE.border})
+
+
+# --- Phase 4: live search box (U5, PTI-5) -------------------------------------------
+#
+# Names these tests expect (rename here if you change them):
+# - An Input with id "search-input" inside the "search-bar" box, placeholder
+#   "name or form".
+# - SEARCH_DEBOUNCE in pokedex_tui.widgets.filter_bar: the wait in seconds
+#   after the last key before FilterBar posts CriteriaChanged. It must be read
+#   when the timer is started (not copied at import), so a test can change it.
+# - "/" focuses the search box, Escape and Enter in it focus the table.
+
+SEARCH_WAIT = 0.4  # longer than the debounce, so the search has been sent
+
+
+def search_input(app):
+    from textual.widgets import Input
+
+    return app.screen.query_one("#search-input", Input)
+
+
+def _collect_criteria(found):
+    """Each CriteriaChanged posted by the filter bar, counted once."""
+    from pokedex_tui.widgets.filter_bar import FilterBar
+
+    seen = set()
+
+    def hook(message):
+        if isinstance(message, FilterBar.CriteriaChanged) and id(message) not in seen:
+            seen.add(id(message))
+            found.append(message.criteria)
+
+    return hook
+
+
+async def type_text(pilot, text):
+    for char in text:
+        await pilot.press(char)
+
+
+async def test_search_box_is_an_input_with_a_placeholder():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        box = filter_box(app, "search-bar")
+        field = search_input(app)
+        assert field.parent is box
+        assert field.placeholder == "name or form"
+        assert field.value == ""
+
+
+async def test_slash_focuses_the_search_box_from_the_table():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await pilot.pause()
+        assert app.focused is search_input(app)
+
+
+async def test_slash_focuses_the_search_box_from_another_box():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("tab", "tab")  # Search, then Type
+        await pilot.pause()
+        assert focused_place(app) == "type-filter"
+        await pilot.press("slash")
+        await pilot.pause()
+        assert app.focused is search_input(app)
+
+
+async def test_typing_narrows_the_table():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        await pilot.pause(SEARCH_WAIT)
+        assert app.criteria.search == "char"
+        assert table_of(app).row_count == 9
+        assert count_text(app) == "9 of 1215"
+
+
+async def test_typing_keeps_the_focus_in_the_search_box():
+    # Each refill must not pull the focus into the table.
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "ch")
+        await pilot.pause(SEARCH_WAIT)
+        await type_text(pilot, "ar")
+        await pilot.pause(SEARCH_WAIT)
+        assert app.focused is search_input(app)
+        assert search_input(app).value == "char"
+
+
+async def test_search_without_accents_finds_flabebe():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "flabebe")
+        await pilot.pause(SEARCH_WAIT)
+        assert "Flabébé" in table_names(app)
+
+
+async def test_search_keeps_the_other_criteria():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({1}), type1="Fire")
+        await pilot.pause()
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        await pilot.pause(SEARCH_WAIT)
+        assert app.criteria == Criteria(
+            search="char", generations=frozenset({1}), type1="Fire"
+        )
+
+
+async def test_fast_typing_sends_one_search(monkeypatch):
+    from pokedex_tui.widgets import filter_bar
+
+    # A long wait, so the four keys always land inside it.
+    monkeypatch.setattr(filter_bar, "SEARCH_DEBOUNCE", 0.5)
+    found = []
+    app = make_app()
+    async with app.run_test(size=SIZE, message_hook=_collect_criteria(found)) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        await pilot.pause()
+        assert found == [], "sent before the wait was over"
+        await pilot.pause(0.8)
+        assert [c.search for c in found] == ["char"]
+
+
+async def test_debounce_is_between_100_and_150_ms():
+    from pokedex_tui.widgets.filter_bar import SEARCH_DEBOUNCE
+
+    assert 0.1 <= SEARCH_DEBOUNCE <= 0.15
+
+
+async def test_clearing_the_search_shows_every_record_again():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        await pilot.pause(SEARCH_WAIT)
+        await pilot.press(*["backspace"] * 4)
+        await pilot.pause(SEARCH_WAIT)
+        assert app.criteria.search == ""
+        assert table_of(app).row_count == 1215
+
+
+async def test_escape_goes_to_the_table_and_keeps_the_text():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        await pilot.press("escape")
+        await pilot.pause(SEARCH_WAIT)
+        assert focused_place(app) == "table"
+        assert search_input(app).value == "char"
+        assert app.criteria.search == "char"
+
+
+async def test_enter_goes_to_the_table():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        await pilot.press("enter")
+        await pilot.pause(SEARCH_WAIT)
+        assert focused_place(app) == "table"
+        assert app.criteria.search == "char"
+        assert selected_name(table_of(app)) == "Charmander"
+
+
+async def test_letter_keys_type_into_the_search_box():
+    """Design doc 5: no single-letter key fires while the user is typing."""
+    from pokedex_tui.models import DEFAULT_SORT
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "GengartTgsSrq19")
+        await pilot.pause(SEARCH_WAIT)
+        assert app.is_running
+        assert app.focused is search_input(app)
+        assert search_input(app).value == "GengartTgsSrq19"
+        assert app.criteria.type1 is None
+        assert app.criteria.type2 is None
+        assert app.criteria.generations == frozenset()
+        assert app.sort_order == DEFAULT_SORT
