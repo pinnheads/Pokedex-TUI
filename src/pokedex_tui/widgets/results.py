@@ -158,7 +158,7 @@ class Results(Widget):
             self.selected_key = None
             message = self.SelectionCleared()
             self.post_message(message)
-            # hide table and headings when no rows to dispaly
+            # hide table and headings when no rows to display
             self.query_one(".headings", Static).display = False
             table.display = False
             # show appropriate message to the user on empty rows

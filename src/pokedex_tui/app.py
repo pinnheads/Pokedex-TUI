@@ -60,7 +60,7 @@ class PokedexApp(App):
         result_widget = self.screen.query_one(Results)
         result_widget.update_records(self.filtered_records)
         # update live match count
-        header = self.screen.query_one("PokedexHeader", PokedexHeader)
+        header = self.screen.query_one(PokedexHeader)
         header.set_header_match_count(len(self.filtered_records))
 
     def on_filter_bar_criteria_changed(self, event: FilterBar.CriteriaChanged):
