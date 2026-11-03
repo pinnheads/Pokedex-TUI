@@ -14,6 +14,7 @@ from pokedex_tui.query import default_sort_pokemon, filter_and_sort, total_ranks
 from pokedex_tui.screens.browser import Browser
 from pokedex_tui.theme import APP_THEME
 from pokedex_tui.widgets.filter_bar import FilterBar
+from pokedex_tui.widgets.header import PokedexHeader
 from pokedex_tui.widgets.results import Results
 
 
@@ -58,6 +59,9 @@ class PokedexApp(App):
         )
         result_widget = self.screen.query_one(Results)
         result_widget.update_records(self.filtered_records)
+        # update live match count
+        header = self.screen.query_one("PokedexHeader", PokedexHeader)
+        header.set_header_match_count(len(self.filtered_records))
 
     def on_filter_bar_criteria_changed(self, event: FilterBar.CriteriaChanged):
         self.criteria = event.criteria

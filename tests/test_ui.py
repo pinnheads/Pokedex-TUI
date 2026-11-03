@@ -1380,3 +1380,151 @@ async def test_row_positions_match_the_new_rows():
         assert positions == {
             p.key: index for index, p in enumerate(app.filtered_records)
         }
+
+
+# --- Phase 4: live match count and empty state (U3, PTI-7) --------------------------
+#
+# Names these tests expect (rename here if you change them):
+# - PokedexHeader.set_header_match_count(n), called from the same app method
+#   that refills the table, with the length of filtered_records.
+# - Results has a Static with id "empty-message", hidden while there are rows.
+#   When the list is empty it is shown, and the ".headings" line and the
+#   DataTable are hidden.
+
+EMPTY_MESSAGE = "No Pokémon match these filters. Press r to reset."
+
+
+def empty_message(app):
+    return app.screen.query_one("#empty-message")
+
+
+def headings(app):
+    return app.screen.query_one(".headings")
+
+
+async def test_count_follows_the_filtered_list():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        assert count_text(app) == "151 of 1215"
+
+
+async def test_count_shows_zero_when_nothing_matches():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="zzzz")
+        await pilot.pause()
+        assert count_text(app) == "0 of 1215"
+
+
+async def test_count_goes_back_to_the_full_number():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        app.criteria = Criteria()
+        await pilot.pause()
+        assert count_text(app) == "1215 of 1215"
+
+
+async def test_count_total_is_the_number_of_loaded_records(small_csv):
+    from pokedex_tui.models import Criteria
+
+    app = make_app(small_csv)
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="zzzz")
+        await pilot.pause()
+        assert count_text(app) == "0 of 14"
+
+
+async def test_count_does_not_change_when_only_the_sort_changes():
+    from pokedex_tui.models import Criteria, SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({1}))
+        app.sort_order = SortOrder.for_field("total")
+        await pilot.pause()
+        assert count_text(app) == "151 of 1215"
+
+
+async def test_empty_message_is_hidden_while_there_are_rows():
+    from textual.widgets import DataTable
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert not empty_message(app).display
+        assert headings(app).display
+        assert app.screen.query_one(DataTable).display
+
+
+async def test_empty_list_shows_the_message_instead_of_the_table():
+    from textual.widgets import DataTable
+
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="zzzz")
+        await pilot.pause()
+        assert empty_message(app).display
+        assert str(empty_message(app).render()) == EMPTY_MESSAGE
+        assert not headings(app).display
+        assert not app.screen.query_one(DataTable).display
+
+
+async def test_empty_message_is_centred_and_muted():
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.theme import PALETTE
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="zzzz")
+        await pilot.pause()
+        message = empty_message(app)
+        rows = screen_cells(app, message.content_region)
+        line = next(cells for cells in rows if row_text(cells).strip())
+        text = row_text(line)
+        assert text.strip() == EMPTY_MESSAGE
+        left = len(text) - len(text.lstrip())
+        right = len(text) - len(text.rstrip())
+        assert abs(left - right) <= 1, (left, right)
+        letters = [style for char, style in line if not char.isspace()]
+        assert {hex_of(style.color) for style in letters} == {PALETTE.muted_text}
+
+
+async def test_table_comes_back_when_there_are_results_again(all_records):
+    from textual.widgets import DataTable
+
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="zzzz")
+        await pilot.pause()
+        app.criteria = Criteria(search="char")
+        await pilot.pause()
+        table = app.screen.query_one(DataTable)
+        assert table.display
+        assert headings(app).display
+        assert not empty_message(app).display
+        assert table.row_count == 9
+        assert table.cursor_row == 0
+        assert browser_selected_key(app) == key_of(all_records, "Charmander")
+        assert app.focused is table
