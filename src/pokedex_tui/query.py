@@ -167,7 +167,7 @@ def _match_type_and_record(record: Pokemon, criteria: Criteria) -> bool:
 # App Helpers
 def type_options(
     slot,
-) -> tuple[None, *tuple[str, ...]] | tuple[None, str, *tuple[str, ...]]:
+) -> tuple[str | None, ...]:
     """return picker values based on slot for types"""
     if slot == 1:
         return (None, *TYPES)
@@ -180,7 +180,9 @@ def generation_options():
     return (None, *GENERATIONS)
 
 
-def type_counts(records: tuple[Pokemon, ...], criteria: Criteria, slot: int):
+def type_counts(
+    records: tuple[Pokemon, ...], criteria: Criteria, slot: int
+) -> Mapping[str, int]:
     """return matching record counts based on how many type options match the given records"""
     options = type_options(slot)[1:]
     counts = {}
