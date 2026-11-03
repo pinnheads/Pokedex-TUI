@@ -60,13 +60,15 @@ class FilterBar(Horizontal):
             self.post_message(
                 self.CriteriaChanged(pokedex_app.criteria.replace(type1=current_val))
             )
+            self.screen.query_one(Results.ExtendedTable).focus()
 
         if changed_type == 2 and pokedex_app.criteria.type2 != current_val:
             self.post_message(
                 self.CriteriaChanged(pokedex_app.criteria.replace(type2=current_val))
             )
+            self.screen.query_one(Results.ExtendedTable).focus()
 
-    def _refersh_pickers(self) -> None:
+    def _refresh_pickers(self) -> None:
         type1 = self.screen.query_one("#type-1-select", Select)
         type2 = self.screen.query_one("#type-2-select", Select)
         pokedex_app = cast("PokedexApp", self.app)
@@ -104,31 +106,27 @@ class FilterBar(Horizontal):
             elif option == NO_SECOND_TYPE:
                 options_for_display.append(
                     (
-                        f"None ({counts[NO_SECOND_TYPE]})"
-                        if counts[option] != 0
-                        else Text(
-                            f"None ({counts[NO_SECOND_TYPE]})",
-                            style=Style(color=PALETTE.muted_text),
-                        ),
+                        self._build_label(text="None", count=counts[NO_SECOND_TYPE]),
                         NO_SECOND_TYPE,
                     )
                 )
             else:
                 options_for_display.append(
                     (
-                        f"{option} ({counts[option]})"
-                        if counts[option] != 0
-                        else Text(
-                            f"{option} ({counts[option]})",
-                            style=Style(color=PALETTE.muted_text),
-                        ),
+                        self._build_label(text=option, count=counts[option]),
                         option,
                     )
                 )
         return tuple(options_for_display)
 
+    def _build_label(self, text: str, count: int) -> str | Text:
+        label = f"{text} ({count})"
+        return (
+            label if count != 0 else Text(label, style=Style(color=PALETTE.muted_text))
+        )
+
     def on_mount(self) -> None:
-        self.screen.query_one(FilterBar)._refersh_pickers()
+        self._refresh_pickers()
 
     def compose(self) -> ComposeResult:
         yield Box(
