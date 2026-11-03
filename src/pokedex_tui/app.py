@@ -66,7 +66,7 @@ class PokedexApp(App):
 
     def watch_criteria(self) -> None:
         self.update_filtered_records()
-        self.screen.query_one(FilterBar)._refersh_pickers()
+        self.screen.query_one(FilterBar)._refresh_pickers()
 
     def watch_sort_order(self) -> None:
         self.update_filtered_records()
