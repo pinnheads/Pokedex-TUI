@@ -57,6 +57,7 @@ FilterBar {
     grid-size: 5 1;
     grid-columns: 30 1fr 1fr 1fr 1fr;
     height: 3;
+    background: $surface;
 }
 
 #body {

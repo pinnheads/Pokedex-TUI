@@ -1528,3 +1528,173 @@ async def test_table_comes_back_when_there_are_results_again(all_records):
         assert table.cursor_row == 0
         assert browser_selected_key(app) == key_of(all_records, "Charmander")
         assert app.focused is table
+
+
+# --- Phase 4: filter bar layout and focus styling (U4, PTI-6) -----------------------
+#
+# Names these tests expect (rename here if you change them):
+# - FilterBar holds five Box widgets, left to right, with these ids and titles:
+#   "search-bar" Search, "type-filter" Type, "type-2-filter" and Type,
+#   "gen-filter" Gen, "sort" Sort.
+# - Each box holds something that can take focus, so Tab stops once per box.
+#   The tests only ask which box holds the focused widget, so U5 to U8 can
+#   swap the placeholder for the real control without changing these tests.
+# - Placeholder values until U5 to U8: Search empty, Type "Any", and Type
+#   "Any", Gen "All" (each with a "▼" at the right edge), Sort
+#   "Dex # ascending".
+
+FILTER_BOXES = (
+    ("search-bar", "Search"),
+    ("type-filter", "Type"),
+    ("type-2-filter", "and Type"),
+    ("gen-filter", "Gen"),
+    ("sort", "Sort"),
+)
+
+
+def filter_box(app, box_id):
+    return app.screen.query_one(f"#{box_id}")
+
+
+def focused_place(app):
+    """The id of the filter box holding the focus, or "table" for the table."""
+    from textual.widgets import DataTable
+
+    widget = app.focused
+    if isinstance(widget, DataTable):
+        return "table"
+    ids = {box_id for box_id, _ in FILTER_BOXES}
+    while widget is not None:
+        if widget.id in ids:
+            return widget.id
+        widget = widget.parent
+    return None
+
+
+def box_value_text(app, box_id):
+    """The first line inside the box's border, as drawn on screen."""
+    region = filter_box(app, box_id).content_region
+    return row_text(screen_cells(app, region)[0])
+
+
+def box_border_colours(app, box_id, title):
+    """(title colours, top border line colours) as drawn on screen."""
+    top = screen_cells(app, filter_box(app, box_id).region)[0]
+    text = row_text(top)
+    start_at = text.index(title)
+    title_cells = top[start_at : start_at + len(title)]
+    line_cells = [style for char, style in top if char == "─"]
+    return (
+        {hex_of(s.color) for _, s in title_cells},
+        {hex_of(s.color) for s in line_cells},
+    )
+
+
+async def test_filter_bar_has_five_boxes_in_order():
+    from pokedex_tui.widgets.box import Box
+    from pokedex_tui.widgets.filter_bar import FilterBar
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        boxes = list(app.screen.query_one(FilterBar).query_children(Box))
+        assert [(b.id, b.border_title) for b in boxes] == list(FILTER_BOXES)
+        xs = [b.region.x for b in boxes]
+        assert xs == sorted(xs)
+        assert {b.region.y for b in boxes} == {1}
+        assert {b.region.height for b in boxes} == {3}
+
+
+async def test_search_box_is_the_widest_at_30_columns():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        widths = {
+            box_id: filter_box(app, box_id).region.width for box_id, _ in FILTER_BOXES
+        }
+        assert widths["search-bar"] == 30
+        assert all(w < 30 for box_id, w in widths.items() if box_id != "search-bar")
+
+
+async def test_filter_bar_is_on_the_surface_background():
+    from pokedex_tui.theme import PALETTE
+    from pokedex_tui.widgets.filter_bar import FilterBar
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        rows = screen_cells(app, app.screen.query_one(FilterBar).region)
+        backgrounds = {hex_of(style.bgcolor) for row in rows for _, style in row}
+        assert backgrounds == {PALETTE.surface}
+
+
+@pytest.mark.parametrize(
+    ("box_id", "value"),
+    [("type-filter", "Any"), ("type-2-filter", "Any"), ("gen-filter", "All")],
+)
+async def test_dropdown_boxes_show_a_value_and_a_down_arrow(box_id, value):
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        text = box_value_text(app, box_id)
+        assert text.strip().startswith(value)
+        assert text.rstrip().endswith("▼")
+        # The arrow sits at the right edge (one space of padding allowed).
+        assert len(text) - len(text.rstrip()) <= 1
+
+
+async def test_sort_box_shows_the_sort_in_words():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert " ".join(box_value_text(app, "sort").split()) == "Dex # ascending"
+
+
+async def test_search_box_starts_empty():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert box_value_text(app, "search-bar").strip() == ""
+
+
+async def test_tab_moves_through_the_boxes_then_the_table():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert focused_place(app) == "table"
+        visited = []
+        for _ in range(6):
+            await pilot.press("tab")
+            await pilot.pause()
+            visited.append(focused_place(app))
+        assert visited == [box_id for box_id, _ in FILTER_BOXES] + ["table"]
+
+
+async def test_shift_tab_goes_the_other_way():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        visited = []
+        for _ in range(6):
+            await pilot.press("shift+tab")
+            await pilot.pause()
+            visited.append(focused_place(app))
+        assert visited == [box_id for box_id, _ in reversed(FILTER_BOXES)] + ["table"]
+
+
+async def test_only_the_focused_filter_box_has_an_accent_border():
+    from pokedex_tui.theme import PALETTE
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        for focused_id, _ in FILTER_BOXES:
+            await pilot.press("tab")
+            await pilot.pause()
+            assert focused_place(app) == focused_id
+            for box_id, title in FILTER_BOXES:
+                titles, lines = box_border_colours(app, box_id, title)
+                if box_id == focused_id:
+                    assert (titles, lines) == ({PALETTE.accent}, {PALETTE.accent})
+                else:
+                    assert (titles, lines) == ({PALETTE.muted_text}, {PALETTE.border})
