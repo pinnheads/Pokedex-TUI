@@ -24,7 +24,6 @@ class FilterBar(Horizontal):
     def __init__(self):
         super().__init__()
         self.timer = None
-        self.pokedex_app = cast("PokedexApp", self.app)
 
     class CriteriaChanged(Message):
         def __init__(self, criteria: Criteria) -> None:
@@ -48,10 +47,9 @@ class FilterBar(Horizontal):
 
     def _send_search(self) -> None:
         current_input_val = self.query_one("#search-input", Input).value
+        pokedex_app = cast("PokedexApp", self.app)
         self.post_message(
-            self.CriteriaChanged(
-                self.pokedex_app.criteria.replace(search=current_input_val)
-            )
+            self.CriteriaChanged(pokedex_app.criteria.replace(search=current_input_val))
         )
 
     def compose(self) -> ComposeResult:
@@ -67,7 +65,7 @@ class FilterBar(Horizontal):
 
 
 class CustomInput(Input):
-    BINDINGS: ClassVar[list[BindingType]] = [("escape", "focus_table", "Escape Search")]
+    BINDINGS: ClassVar[list[BindingType]] = [("escape", "focus_table", "Back")]
 
     def action_focus_table(self):
         self.screen.query_one(Results.ExtendedTable).focus()
