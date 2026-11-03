@@ -7,6 +7,7 @@ from textual.binding import Binding, BindingType
 from textual.driver import Driver
 from textual.reactive import reactive
 from textual.types import CSSPathType
+from textual.widgets import Input
 
 from pokedex_tui.loader import PokedexDataError, load_pokemon
 from pokedex_tui.models import DEFAULT_SORT, Criteria, Pokemon
@@ -45,7 +46,11 @@ class PokedexApp(App):
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
+        Binding("/", "focus_search", "Search"),
     ]
+
+    def action_focus_search(self) -> None:
+        self.screen.query_one("#search-input", Input).focus()
 
     def watch_criteria(self) -> None:
         self.update_filtered_records()

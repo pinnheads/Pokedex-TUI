@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from rich.text import Text
 from textual.app import ComposeResult
+from textual.binding import BindingType
 from textual.containers import Horizontal
 from textual.message import Message
 from textual.widget import Widget
@@ -9,6 +10,7 @@ from textual.widgets import Input
 
 from pokedex_tui.models import Criteria, SortOrder
 from pokedex_tui.widgets.box import Box
+from pokedex_tui.widgets.results import Results
 
 if TYPE_CHECKING:
     from pokedex_tui.app import PokedexApp
@@ -34,6 +36,9 @@ class FilterBar(Horizontal):
             super().__init__()
             self.sort_order = sort_order
 
+    def on_input_submitted(self) -> None:
+        self.screen.query_one(Results.ExtendedTable).focus()
+
     def on_input_changed(self, event) -> None:
         # close any previous running timer
         if self.timer:
@@ -51,7 +56,7 @@ class FilterBar(Horizontal):
 
     def compose(self) -> ComposeResult:
         yield Box(
-            Input(placeholder="Name or Form", id="search-input", compact=True),
+            CustomInput(placeholder="name or form", id="search-input", compact=True),
             title="Search",
             id="search-bar",
         )
@@ -59,6 +64,13 @@ class FilterBar(Horizontal):
         yield Box(FilterValue("Any", arrow=True), title="and Type", id="type-2-filter")
         yield Box(FilterValue("All", arrow=True), title="Gen", id="gen-filter")
         yield Box(FilterValue("Dex # ascending"), title="Sort", id="sort")
+
+
+class CustomInput(Input):
+    BINDINGS: ClassVar[list[BindingType]] = [("escape", "focus_table", "Escape Search")]
+
+    def action_focus_table(self):
+        self.screen.query_one(Results.ExtendedTable).focus()
 
 
 class FilterValue(Widget, can_focus=True):
