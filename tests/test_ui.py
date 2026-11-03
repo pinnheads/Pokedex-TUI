@@ -1904,3 +1904,226 @@ async def test_letter_keys_type_into_the_search_box():
         assert app.criteria.type2 is None
         assert app.criteria.generations == frozenset()
         assert app.sort_order == DEFAULT_SORT
+
+
+# --- Phase 4: the two type pickers (U6, PTI-4) --------------------------------------
+#
+# Names these tests expect (rename here if you change them):
+# - A Select with id "type-1-select" in the "type-filter" box and one with id
+#   "type-2-select" in the "type-2-filter" box, each with allow_blank=False.
+# - Options in query.type_options(slot) order. Labels: "Any" first, then for
+#   the second picker "None (n)", then "Type (n)" with the match count from
+#   query.type_counts. "Any" sets the criteria value to None, "None" to
+#   NO_SECOND_TYPE.
+# - "t" opens the first picker and "T" the second (focus moves to it and its
+#   list is open). Counts are refreshed each time a picker opens.
+# - Options with a count of 0 are drawn in the muted colour and can still be
+#   chosen.
+
+
+def type_select(app, slot):
+    from textual.widgets import Select
+
+    return app.screen.query_one(f"#type-{slot}-select", Select)
+
+
+def open_option_labels(app, slot):
+    """The labels of the open picker's list, as plain text."""
+    from textual.widgets import OptionList
+
+    options = type_select(app, slot).query_one(OptionList)
+    return [
+        str(options.get_option_at_index(i).prompt) for i in range(options.option_count)
+    ]
+
+
+async def choose_type(pilot, key, label):
+    """Open a picker with its key and pick the option whose label starts with label."""
+    app = pilot.app
+    slot = 1 if key == "t" else 2
+    await pilot.press(key)
+    await pilot.pause()
+    labels = open_option_labels(app, slot)
+    target = next(i for i, text in enumerate(labels) if text.split(" (")[0] == label)
+    from textual.widgets import OptionList
+
+    current = type_select(app, slot).query_one(OptionList).highlighted or 0
+    step = "down" if target >= current else "up"
+    await pilot.press(*[step] * abs(target - current))
+    await pilot.press("enter")
+    await pilot.pause()
+
+
+async def test_type_pickers_sit_in_the_type_boxes():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert type_select(app, 1).parent is filter_box(app, "type-filter")
+        assert type_select(app, 2).parent is filter_box(app, "type-2-filter")
+
+
+async def test_t_opens_the_first_picker():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("t")
+        await pilot.pause()
+        assert type_select(app, 1).expanded
+        assert focused_place(app) == "type-filter"
+        assert not type_select(app, 2).expanded
+
+
+async def test_shift_t_opens_the_second_picker():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("T")
+        await pilot.pause()
+        assert type_select(app, 2).expanded
+        assert focused_place(app) == "type-2-filter"
+        assert not type_select(app, 1).expanded
+
+
+async def test_first_picker_options_are_any_then_the_types_with_counts(all_records):
+    from pokedex_tui.models import TYPES, Criteria
+    from pokedex_tui.query import type_counts
+
+    counts = type_counts(all_records, Criteria(), 1)
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("t")
+        await pilot.pause()
+        assert open_option_labels(app, 1) == ["Any"] + [
+            f"{name} ({counts[name]})" for name in TYPES
+        ]
+
+
+async def test_second_picker_adds_none_after_any(all_records):
+    from pokedex_tui.models import NO_SECOND_TYPE, TYPES, Criteria
+    from pokedex_tui.query import type_counts
+
+    counts = type_counts(all_records, Criteria(), 2)
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("T")
+        await pilot.pause()
+        assert open_option_labels(app, 2) == [
+            "Any",
+            f"None ({counts[NO_SECOND_TYPE]})",
+        ] + [f"{name} ({counts[name]})" for name in TYPES]
+
+
+async def test_choosing_water_matches_either_slot():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await choose_type(pilot, "t", "Water")
+        assert app.criteria.type1 == "Water"
+        assert app.criteria.type2 is None
+        found = app.filtered_records
+        assert found and all("Water" in p.types for p in found)
+        assert any(p.type2 == "Water" for p in found)
+
+
+async def test_water_and_flying_match_in_either_order():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await choose_type(pilot, "t", "Water")
+        await choose_type(pilot, "T", "Flying")
+        assert (app.criteria.type1, app.criteria.type2) == ("Water", "Flying")
+        pairs = {(p.type1, p.type2) for p in app.filtered_records}
+        assert pairs == {("Water", "Flying"), ("Flying", "Water")}
+
+
+async def test_fire_and_none_gives_37_pure_fire_types():
+    from pokedex_tui.models import NO_SECOND_TYPE
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await choose_type(pilot, "t", "Fire")
+        await choose_type(pilot, "T", "None")
+        assert app.criteria.type2 == NO_SECOND_TYPE
+        assert table_of(app).row_count == 37
+        assert count_text(app) == "37 of 1215"
+
+
+async def test_choosing_any_clears_the_slot():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await choose_type(pilot, "t", "Fire")
+        await choose_type(pilot, "t", "Any")
+        assert app.criteria.type1 is None
+        assert table_of(app).row_count == 1215
+
+
+async def test_choosing_a_type_keeps_the_other_criteria():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="char", generations=frozenset({1}))
+        await pilot.pause()
+        await choose_type(pilot, "t", "Fire")
+        assert app.criteria == Criteria(
+            search="char", generations=frozenset({1}), type1="Fire"
+        )
+
+
+async def test_counts_are_refreshed_when_a_picker_opens(all_records):
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.query import type_counts
+
+    gen_1 = Criteria(generations=frozenset({1}))
+    counts = type_counts(all_records, gen_1, 1)
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = gen_1
+        await pilot.pause()
+        await pilot.press("t")
+        await pilot.pause()
+        labels = open_option_labels(app, 1)
+        assert "Dark (0)" in labels
+        assert f"Fire ({counts['Fire']})" in labels
+
+
+async def test_zero_count_types_are_muted_but_can_be_chosen():
+    from pokedex_tui.models import Criteria
+    from pokedex_tui.theme import PALETTE
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({1}))
+        await pilot.pause()
+        await pilot.press("t")
+        await pilot.pause()
+        rows = screen_cells(app, app.screen.region)
+        line = next(cells for cells in rows if "Dark (0)" in row_text(cells))
+        text = row_text(line)
+        at = text.index("Dark (0)")
+        letters = [s for c, s in line[at : at + len("Dark (0)")] if not c.isspace()]
+        assert {hex_of(s.color) for s in letters} == {PALETTE.muted_text}
+
+        await pilot.press("escape")
+        await pilot.pause()
+        await choose_type(pilot, "t", "Dark")
+        assert app.criteria.type1 == "Dark"
+        assert table_of(app).row_count == 0
+
+
+async def test_type_keys_do_nothing_while_typing_in_search():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash", "t", "T")
+        await pilot.pause()
+        assert not type_select(app, 1).expanded
+        assert not type_select(app, 2).expanded
+        assert search_input(app).value == "tT"
