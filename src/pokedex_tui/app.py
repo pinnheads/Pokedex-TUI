@@ -7,7 +7,7 @@ from textual.binding import Binding, BindingType
 from textual.driver import Driver
 from textual.reactive import reactive
 from textual.types import CSSPathType
-from textual.widgets import Input
+from textual.widgets import Input, Select
 
 from pokedex_tui.loader import PokedexDataError, load_pokemon
 from pokedex_tui.models import DEFAULT_SORT, Criteria, Pokemon
@@ -47,13 +47,26 @@ class PokedexApp(App):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
         Binding("/", "focus_search", "Search"),
+        Binding("t", "open_picker_one", "Type"),
+        Binding("T", "open_picker_two", "Type", show=False),
     ]
 
     def action_focus_search(self) -> None:
         self.screen.query_one("#search-input", Input).focus()
 
+    def action_open_picker_one(self) -> None:
+        self.screen.query_one(
+            selector="#type-1-select", expect_type=Select
+        ).focus().expanded = True
+
+    def action_open_picker_two(self) -> None:
+        self.screen.query_one(
+            selector="#type-2-select", expect_type=Select
+        ).focus().expanded = True
+
     def watch_criteria(self) -> None:
         self.update_filtered_records()
+        self.screen.query_one(FilterBar)._refersh_pickers()
 
     def watch_sort_order(self) -> None:
         self.update_filtered_records()
@@ -82,5 +95,6 @@ class PokedexApp(App):
             self.all_records = all_records
             self.filtered_records = all_records
             self.push_screen(Browser(all_records=all_records, ranks=self.total_ranks))
+            self.screen.query_one(FilterBar)._refersh_pickers()
         except PokedexDataError as e:
             self.exit(message=str(e), return_code=1)
