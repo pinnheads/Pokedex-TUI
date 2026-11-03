@@ -127,6 +127,9 @@ class FilterBar(Horizontal):
                 )
         return tuple(options_for_display)
 
+    def on_mount(self) -> None:
+        self.screen.query_one(FilterBar)._refersh_pickers()
+
     def compose(self) -> ComposeResult:
         yield Box(
             CustomInput(placeholder="name or form", id="search-input", compact=True),

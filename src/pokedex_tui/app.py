@@ -95,6 +95,5 @@ class PokedexApp(App):
             self.all_records = all_records
             self.filtered_records = all_records
             self.push_screen(Browser(all_records=all_records, ranks=self.total_ranks))
-            self.screen.query_one(FilterBar)._refersh_pickers()
         except PokedexDataError as e:
             self.exit(message=str(e), return_code=1)

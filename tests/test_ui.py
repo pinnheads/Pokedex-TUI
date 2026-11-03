@@ -386,7 +386,7 @@ async def test_footer_shows_only_working_keys():
             for _, binding, enabled, _ in app.active_bindings.values()
             if binding.show and enabled
         ]
-        assert sorted(shown) == ["Move", "Quit", "Search"]
+        assert sorted(shown) == ["Move", "Quit", "Search", "Type"]
 
 
 async def test_move_key_shows_both_arrows():
