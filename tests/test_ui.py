@@ -386,7 +386,7 @@ async def test_footer_shows_only_working_keys():
             for _, binding, enabled, _ in app.active_bindings.values()
             if binding.show and enabled
         ]
-        assert sorted(shown) == ["Move", "Quit", "Search", "Type"]
+        assert sorted(shown) == ["Gen", "Move", "Quit", "Search", "Type"]
 
 
 async def test_move_key_shows_both_arrows():
@@ -2127,3 +2127,209 @@ async def test_type_keys_do_nothing_while_typing_in_search():
         assert not type_select(app, 1).expanded
         assert not type_select(app, 2).expanded
         assert search_input(app).value == "tT"
+
+
+# --- Phase 4: generation picker and quick keys (U7, PTI-3) -----------------------------
+#
+# Names these tests expect (rename here if you change them):
+# - A Select with id "gen-select" in the "gen-filter" box, with allow_blank=False.
+# - Options in query.generation_options() order, labelled "All", then "1" to "9"
+#   (no counts). "All" sets criteria.generations to an empty frozenset; a number
+#   sets a frozenset holding just that number.
+# - "g" opens the picker (focus moves to it and its list is open). The footer
+#   shows "Gen".
+# - Keys "1" to "9" work only while the table has focus, and are hidden from the
+#   footer. A number sets that generation; the same number again clears it.
+# - The Gen box always shows the generation in app.criteria, however it was set.
+
+
+def gen_select(app):
+    from textual.widgets import Select
+
+    return app.screen.query_one("#gen-select", Select)
+
+
+def open_gen_labels(app):
+    """The labels of the open Gen picker's list, as plain text."""
+    from textual.widgets import OptionList
+
+    options = gen_select(app).query_one(OptionList)
+    return [
+        str(options.get_option_at_index(i).prompt) for i in range(options.option_count)
+    ]
+
+
+async def choose_gen(pilot, label):
+    """Open the Gen picker with "g" and pick the option with this label."""
+    from textual.widgets import OptionList
+
+    app = pilot.app
+    await pilot.press("g")
+    await pilot.pause()
+    target = open_gen_labels(app).index(label)
+    current = gen_select(app).query_one(OptionList).highlighted or 0
+    step = "down" if target >= current else "up"
+    await pilot.press(*[step] * abs(target - current))
+    await pilot.press("enter")
+    await pilot.pause()
+
+
+async def focus_table(app, pilot):
+    table_of(app).focus()
+    await pilot.pause()
+
+
+async def test_gen_picker_sits_in_the_gen_box():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert gen_select(app).parent is filter_box(app, "gen-filter")
+
+
+async def test_g_opens_the_gen_picker():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("g")
+        await pilot.pause()
+        assert gen_select(app).expanded
+        assert focused_place(app) == "gen-filter"
+
+
+async def test_gen_options_are_all_then_1_to_9():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("g")
+        await pilot.pause()
+        assert open_gen_labels(app) == ["All"] + [str(n) for n in range(1, 10)]
+
+
+async def test_choosing_gen_3_shows_only_gen_3_rows():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await choose_gen(pilot, "3")
+        assert app.criteria.generations == frozenset({3})
+        assert table_of(app).row_count == 141
+        assert {p.generation for p in app.filtered_records} == {3}
+
+
+async def test_choosing_all_clears_the_generation():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await choose_gen(pilot, "3")
+        await choose_gen(pilot, "All")
+        assert app.criteria.generations == frozenset()
+        assert table_of(app).row_count == 1215
+
+
+async def test_choosing_a_gen_keeps_the_other_criteria():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="char", type1="Fire")
+        await pilot.pause()
+        await choose_gen(pilot, "1")
+        assert app.criteria == Criteria(
+            search="char", type1="Fire", generations=frozenset({1})
+        )
+
+
+async def test_number_key_on_the_table_sets_that_generation():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await focus_table(app, pilot)
+        await pilot.press("1")
+        await pilot.pause()
+        assert app.criteria.generations == frozenset({1})
+        assert table_of(app).row_count == 151
+
+
+async def test_same_number_key_again_goes_back_to_all():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await focus_table(app, pilot)
+        await pilot.press("1")
+        await pilot.pause()
+        await pilot.press("1")
+        await pilot.pause()
+        assert app.criteria.generations == frozenset()
+        assert table_of(app).row_count == 1215
+
+
+async def test_a_different_number_key_switches_the_generation():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await focus_table(app, pilot)
+        await pilot.press("1")
+        await pilot.pause()
+        await pilot.press("9")
+        await pilot.pause()
+        assert app.criteria.generations == frozenset({9})
+        assert table_of(app).row_count == 140
+
+
+async def test_number_key_keeps_the_other_criteria():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(type1="Fire")
+        await pilot.pause()
+        await focus_table(app, pilot)
+        await pilot.press("1")
+        await pilot.pause()
+        assert app.criteria == Criteria(type1="Fire", generations=frozenset({1}))
+        assert table_of(app).row_count == 12
+
+
+async def test_number_key_updates_the_gen_box():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await focus_table(app, pilot)
+        await pilot.press("4")
+        await pilot.pause()
+        assert box_value_text(app, "gen-filter").strip().startswith("4")
+        await pilot.press("4")
+        await pilot.pause()
+        assert box_value_text(app, "gen-filter").strip().startswith("All")
+
+
+async def test_gen_box_follows_the_app_criteria():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(generations=frozenset({6}))
+        await pilot.pause()
+        assert box_value_text(app, "gen-filter").strip().startswith("6")
+
+
+async def test_number_keys_type_into_the_search_box():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash", "1", "g")
+        await pilot.pause(SEARCH_WAIT)
+        assert search_input(app).value == "1g"
+        assert app.criteria.generations == frozenset()
+        assert not gen_select(app).expanded
+
+
+async def test_gen_picker_sends_no_change_on_start():
+    found = []
+    app = make_app()
+    async with app.run_test(size=SIZE, message_hook=_collect_criteria(found)) as pilot:
+        await start(app, pilot)
+        await pilot.pause()
+        assert found == []
