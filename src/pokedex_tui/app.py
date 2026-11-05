@@ -49,6 +49,7 @@ class PokedexApp(App):
         Binding("/", "focus_search", "Search"),
         Binding("t", "open_picker_one", "Type"),
         Binding("T", "open_picker_two", "Type", show=False),
+        Binding("g", "open_picker_generation", "Gen"),
     ]
 
     def action_focus_search(self) -> None:
@@ -62,6 +63,11 @@ class PokedexApp(App):
     def action_open_picker_two(self) -> None:
         self.screen.query_one(
             selector="#type-2-select", expect_type=Select
+        ).focus().expanded = True
+
+    def action_open_picker_generation(self) -> None:
+        self.screen.query_one(
+            selector="#gen-select", expect_type=Select
         ).focus().expanded = True
 
     def watch_criteria(self) -> None:

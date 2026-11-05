@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from rich.align import AlignMethod
 from rich.style import Style
@@ -13,6 +13,9 @@ from pokedex_tui.models import Pokemon
 from pokedex_tui.theme import PALETTE
 from pokedex_tui.widgets.box import Box
 from pokedex_tui.widgets.type_badge import BADGE_WIDTH, type_badges_text
+
+if TYPE_CHECKING:
+    from pokedex_tui.app import PokedexApp
 
 # Spaces the table puts on each side of every cell
 CELL_PADDING = 1
@@ -34,12 +37,20 @@ class Results(Widget):
         """Subclass of datatable for extending the default Keybinds"""
 
         BINDINGS: ClassVar[list[BindingType]] = [
+            Binding("1", "pick_generation(1)", "Move", show=False),
             Binding("j", "cursor_down", "Cursor Down", show=False),
             Binding("k", "cursor_up", "Cursor Up", show=False),
             Binding("home", "scroll_top", "Top", show=False),
             Binding("end", "scroll_bottom", "Bottom", show=False),
             Binding("down", "cursor_down", "Move", key_display="↑↓"),
         ]
+
+        def action_pick_generation(self, gen: int) -> None:
+            pokedex_app = cast("PokedexApp", self.app)
+            if pokedex_app.criteria.generations == gen:
+                pokedex_app.criteria.replace(generations=frozenset())
+            else:
+                pokedex_app.criteria.replace(generations=frozenset({gen}))
 
     class SelectionChanged(Message):
         """Event emitted when the selection changes on the results table"""
