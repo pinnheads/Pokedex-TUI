@@ -37,7 +37,15 @@ class Results(Widget):
         """Subclass of datatable for extending the default Keybinds"""
 
         BINDINGS: ClassVar[list[BindingType]] = [
-            Binding("1", "pick_generation(1)", "Move", show=False),
+            Binding("1", "pick_generation(1)", "Gen 1", show=False),
+            Binding("2", "pick_generation(2)", "Gen 2", show=False),
+            Binding("3", "pick_generation(3)", "Gen 3", show=False),
+            Binding("4", "pick_generation(4)", "Gen 4", show=False),
+            Binding("5", "pick_generation(5)", "Gen 5", show=False),
+            Binding("6", "pick_generation(6)", "Gen 6", show=False),
+            Binding("7", "pick_generation(7)", "Gen 7", show=False),
+            Binding("8", "pick_generation(8)", "Gen 8", show=False),
+            Binding("9", "pick_generation(9)", "Gen 9", show=False),
             Binding("j", "cursor_down", "Cursor Down", show=False),
             Binding("k", "cursor_up", "Cursor Up", show=False),
             Binding("home", "scroll_top", "Top", show=False),
@@ -47,10 +55,14 @@ class Results(Widget):
 
         def action_pick_generation(self, gen: int) -> None:
             pokedex_app = cast("PokedexApp", self.app)
-            if pokedex_app.criteria.generations == gen:
-                pokedex_app.criteria.replace(generations=frozenset())
+            if pokedex_app.criteria.generations == frozenset({gen}):
+                pokedex_app.criteria = pokedex_app.criteria.replace(
+                    generations=frozenset()
+                )
             else:
-                pokedex_app.criteria.replace(generations=frozenset({gen}))
+                pokedex_app.criteria = pokedex_app.criteria.replace(
+                    generations=frozenset({gen})
+                )
 
     class SelectionChanged(Message):
         """Event emitted when the selection changes on the results table"""
