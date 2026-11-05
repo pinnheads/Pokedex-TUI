@@ -82,7 +82,7 @@ class FilterBar(Horizontal):
             event.select.id == "gen-select"
             and pokedex_app.criteria.generations != current_val
         ):
-            if current_val == ANY_GENERATION:
+            if current_val == frozenset():
                 self.post_message(
                     self.CriteriaChanged(
                         pokedex_app.criteria.replace(generations=frozenset())
@@ -91,11 +91,11 @@ class FilterBar(Horizontal):
             else:
                 self.post_message(
                     self.CriteriaChanged(
-                        pokedex_app.criteria.replace(
-                            generations=frozenset({current_val})
-                        )
+                        pokedex_app.criteria.replace(generations=current_val)
                     )
                 )
+
+            self.screen.query_one(Results.ExtendedTable).focus()
 
     def _refresh_pickers(self) -> None:
         type1 = self.screen.query_one("#type-1-select", Select)
