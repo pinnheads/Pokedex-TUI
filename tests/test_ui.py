@@ -386,7 +386,15 @@ async def test_footer_shows_only_working_keys():
             for _, binding, enabled, _ in app.active_bindings.values()
             if binding.show and enabled
         ]
-        assert sorted(shown) == ["Gen", "Move", "Quit", "Search", "Sort", "Type"]
+        assert sorted(shown) == [
+            "Gen",
+            "Move",
+            "Quit",
+            "Reset",
+            "Search",
+            "Sort",
+            "Type",
+        ]
 
 
 async def test_move_key_shows_both_arrows():
@@ -2674,3 +2682,267 @@ async def test_no_arrow_when_the_sort_has_no_column():
         app.sort_order = SortOrder.for_field("hp")
         await pilot.pause()
         assert arrows(app) == []
+
+
+# --- Phase 4: reset key and Phase 4 walkthrough (U9, PTI-1) ----------------------------
+#
+# Names these tests expect (rename here if you change them):
+# - "r" (footer label "Reset") sets app.criteria back to Criteria() and
+#   app.sort_order back to DEFAULT_SORT in one step: the table is filtered and
+#   sorted once per press, not once for the criteria and again for the sort.
+# - It works from the table and from a closed picker, but typing "r" in the
+#   search box just types the letter.
+# - Afterwards every box shows its reset value: empty search box, "Any",
+#   "Any", "All", "Dex # ascending". A search typed before the reset must not
+#   come back later.
+# - The selected Pokémon stays selected (the U2 rules).
+# - The reset control is the footer's "r Reset" key: clicking it does the same
+#   as pressing r.
+# - Footer order follows main-screen.md 3.4: Search, Type, Gen, Sort, Reset,
+#   then Quit last.
+
+
+async def make_everything_non_default(app, pilot):
+    from pokedex_tui.models import Criteria, SortOrder
+
+    app.criteria = Criteria(
+        search="char", type1="Fire", type2="Flying", generations=frozenset({1})
+    )
+    app.sort_order = SortOrder.for_field("total")
+    await pilot.pause()
+
+
+def footer_labels(app):
+    """The footer's key labels, in the order they are drawn."""
+    from textual.widgets._footer import FooterKey
+
+    return [key.description for key in app.screen.query(FooterKey)]
+
+
+async def test_r_resets_the_filters_and_the_sort():
+    from pokedex_tui.models import DEFAULT_SORT, Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await make_everything_non_default(app, pilot)
+        assert table_of(app).row_count == 1
+        await focus_table(app, pilot)
+        await pilot.press("r")
+        await pilot.pause()
+        assert app.criteria == Criteria()
+        assert app.sort_order == DEFAULT_SORT
+        assert table_of(app).row_count == 1215
+        assert count_text(app) == "1215 of 1215"
+        assert [p.dex_id for p in app.filtered_records[:3]] == [1, 2, 3]
+
+
+async def test_r_filters_and_sorts_the_table_once(monkeypatch):
+    import pokedex_tui.app as app_module
+
+    real = app_module.filter_and_sort
+    calls = []
+
+    def counting(*args, **kwargs):
+        calls.append(args)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(app_module, "filter_and_sort", counting)
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await make_everything_non_default(app, pilot)
+        await focus_table(app, pilot)
+        calls.clear()
+        await pilot.press("r")
+        await pilot.pause()
+        assert len(calls) == 1
+
+
+async def test_r_from_a_closed_picker_resets():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(type1="Fire")
+        await pilot.pause()
+        type_select(app, 2).focus()
+        await pilot.pause()
+        await pilot.press("r")
+        await pilot.pause()
+        assert app.criteria == Criteria()
+
+
+async def test_r_types_into_the_search_box():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(type1="Fire")
+        await pilot.pause()
+        await pilot.press("slash", "r")
+        await pilot.pause(SEARCH_WAIT)
+        assert search_input(app).value == "r"
+        assert app.criteria == Criteria(search="r", type1="Fire")
+
+
+async def test_every_box_shows_its_reset_value():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        await pilot.press("enter")
+        await pilot.pause(SEARCH_WAIT)
+        await choose_type(pilot, "t", "Fire")
+        await choose_type(pilot, "T", "Flying")
+        await choose_gen(pilot, "1")
+        await pilot.press("s", "s")
+        await pilot.pause()
+        await focus_table(app, pilot)
+        await pilot.press("r")
+        await pilot.pause()
+        assert search_input(app).value == ""
+        assert box_value_text(app, "type-filter").split()[0] == "Any"
+        assert box_value_text(app, "type-2-filter").split()[0] == "Any"
+        assert box_value_text(app, "gen-filter").split()[0] == "All"
+        assert sort_box_words(app) == "Dex # ascending"
+
+
+async def test_a_search_typed_before_the_reset_does_not_come_back():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        # leave the box and reset before the search has been sent
+        await pilot.press("escape", "r")
+        await pilot.pause(SEARCH_WAIT)
+        assert search_input(app).value == ""
+        assert app.criteria == Criteria()
+        assert table_of(app).row_count == 1215
+
+
+async def test_the_selected_pokemon_stays_selected_after_a_reset(all_records):
+    from pokedex_tui.models import Criteria
+
+    charizard = key_of(all_records, "Charizard")
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(type1="Fire")
+        await pilot.pause()
+        await select_row_by_key(app, pilot, charizard)
+        await focus_table(app, pilot)
+        await pilot.press("r")
+        await pilot.pause()
+        table = table_of(app)
+        assert table.row_count == 1215
+        assert browser_selected_key(app) == charizard
+        assert selected_name(table) == "Charizard"
+        assert row_is_visible(table, table.cursor_row)
+
+
+async def test_r_clears_the_empty_state():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="zzz")
+        await pilot.pause()
+        assert empty_message(app).display
+        await pilot.press("r")
+        await pilot.pause()
+        assert not empty_message(app).display
+        assert table_of(app).display
+        assert count_text(app) == "1215 of 1215"
+
+
+async def test_clicking_reset_in_the_footer_resets():
+    from textual.widgets._footer import FooterKey
+
+    from pokedex_tui.models import DEFAULT_SORT, Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await make_everything_non_default(app, pilot)
+        await focus_table(app, pilot)
+        reset_key = next(
+            key for key in app.screen.query(FooterKey) if key.description == "Reset"
+        )
+        await pilot.click(reset_key)
+        await pilot.pause()
+        assert app.criteria == Criteria()
+        assert app.sort_order == DEFAULT_SORT
+
+
+async def test_footer_keys_follow_the_design_order():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        wanted = ["Search", "Type", "Gen", "Sort", "Reset", "Quit"]
+        assert [label for label in footer_labels(app) if label in wanted] == wanted
+
+
+async def test_walkthrough_char_fire_gen_1_then_reset(all_records):
+    charizard = key_of(all_records, "Charizard")
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "char")
+        await pilot.press("enter")
+        await pilot.pause(SEARCH_WAIT)
+        table = table_of(app)
+        assert table.row_count == 9
+        assert [p.name for p in app.filtered_records[:3]] == [
+            "Charmander",
+            "Charmeleon",
+            "Charizard",
+        ]
+
+        await choose_type(pilot, "t", "Fire")
+        assert table.row_count == 7
+        assert count_text(app) == "7 of 1215"
+
+        await select_row_by_key(app, pilot, charizard)
+        await choose_gen(pilot, "1")
+        assert [p.display_name for p in app.filtered_records] == [
+            "Charmander",
+            "Charmeleon",
+            "Charizard",
+        ]
+        assert browser_selected_key(app) == charizard
+
+        await choose_type(pilot, "T", "Water")
+        assert empty_message(app).display
+        assert count_text(app) == "0 of 1215"
+
+        await pilot.press("r")
+        await pilot.pause()
+        assert count_text(app) == "1215 of 1215"
+        assert not empty_message(app).display
+
+
+async def test_typing_gengar_opens_nothing_and_keeps_the_sort():
+    from textual.widgets import Select
+
+    from pokedex_tui.models import DEFAULT_SORT, Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash")
+        await type_text(pilot, "Gengar")
+        await pilot.pause(SEARCH_WAIT)
+        assert search_input(app).value == "Gengar"
+        assert not any(select.expanded for select in app.screen.query(Select))
+        assert app.sort_order == DEFAULT_SORT
+        assert app.criteria == Criteria(search="Gengar")
+        assert focused_place(app) == "search-bar"
