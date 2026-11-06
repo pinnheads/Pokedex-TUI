@@ -55,7 +55,7 @@ StatsPanel {
 FilterBar {
     layout: grid;
     grid-size: 5 1;
-    grid-columns: 30 1fr 1fr 1fr 1fr;
+    grid-columns: 30 1fr 1fr 10 22;
     height: 3;
     background: $surface;
 }
@@ -122,10 +122,6 @@ Box:focus-within {
 .total-row,
 .hint-line {
     margin-top: 1;
-}
-
-#sort {
-    width: 18;
 }
 
 #empty-message {
