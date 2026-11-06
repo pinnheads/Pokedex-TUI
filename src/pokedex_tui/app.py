@@ -14,7 +14,7 @@ from pokedex_tui.models import DEFAULT_SORT, Criteria, Pokemon
 from pokedex_tui.query import default_sort_pokemon, filter_and_sort, total_ranks
 from pokedex_tui.screens.browser import Browser
 from pokedex_tui.theme import APP_THEME
-from pokedex_tui.widgets.filter_bar import FilterBar
+from pokedex_tui.widgets.filter_bar import CustomInput, FilterBar
 from pokedex_tui.widgets.header import PokedexHeader
 from pokedex_tui.widgets.results import Results
 
@@ -45,14 +45,20 @@ class PokedexApp(App):
     sort_order = reactive(DEFAULT_SORT, init=False)
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("q", "quit", "Quit"),
         Binding("/", "focus_search", "Search"),
         Binding("t", "open_picker_one", "Type"),
         Binding("T", "open_picker_two", "Type", show=False),
         Binding("g", "open_picker_generation", "Gen"),
+        Binding("r", "reset", "Reset"),
+        Binding("q", "quit", "Quit"),
         Binding("s", "set_next_sort_field", "Sort"),
         Binding("S", "flip_sort_order", "Sort", show=False),
     ]
+
+    def action_reset(self) -> None:
+        self.criteria = Criteria()
+        self.sort_order = DEFAULT_SORT
+        self.screen.query_one(CustomInput).value = ""
 
     def action_set_next_sort_field(self) -> None:
         self.sort_order = self.sort_order.next_field()
