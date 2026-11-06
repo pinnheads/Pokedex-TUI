@@ -37,6 +37,7 @@ class PokedexApp(App):
         self.register_theme(APP_THEME)
         self.theme = APP_THEME.name
         self.filtered_records = ()
+        self._resetting = False
 
     CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
@@ -56,9 +57,13 @@ class PokedexApp(App):
     ]
 
     def action_reset(self) -> None:
+        self._resetting = True
         self.criteria = Criteria()
         self.sort_order = DEFAULT_SORT
+        self._resetting = False
         self.screen.query_one(CustomInput).value = ""
+        self.update_filtered_records()
+        self.screen.query_one(FilterBar)._refresh_pickers()
 
     def action_set_next_sort_field(self) -> None:
         self.sort_order = self.sort_order.next_field()
@@ -85,10 +90,14 @@ class PokedexApp(App):
         ).focus().expanded = True
 
     def watch_criteria(self) -> None:
+        if self._resetting:
+            return
         self.update_filtered_records()
         self.screen.query_one(FilterBar)._refresh_pickers()
 
     def watch_sort_order(self) -> None:
+        if self._resetting:
+            return
         self.update_filtered_records()
         self.screen.query_one(FilterBar)._refresh_pickers()
 
