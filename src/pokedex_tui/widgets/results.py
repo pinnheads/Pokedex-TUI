@@ -5,16 +5,15 @@ from rich.style import Style
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
+from textual.events import Click
 from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import DataTable, Static
-from textual.events import Click
 
 from pokedex_tui.models import Pokemon, SortOrder
 from pokedex_tui.theme import PALETTE
 from pokedex_tui.widgets.box import Box
 from pokedex_tui.widgets.type_badge import BADGE_WIDTH, type_badges_text
-
 
 if TYPE_CHECKING:
     from pokedex_tui.app import PokedexApp
