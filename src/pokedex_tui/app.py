@@ -84,6 +84,7 @@ class PokedexApp(App):
 
     def watch_sort_order(self) -> None:
         self.update_filtered_records()
+        self.screen.query_one(FilterBar)._refresh_pickers()
 
     def update_filtered_records(self) -> None:
         self.filtered_records = filter_and_sort(
