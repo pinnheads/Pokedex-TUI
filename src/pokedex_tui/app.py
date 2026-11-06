@@ -102,6 +102,9 @@ class PokedexApp(App):
     def on_filter_bar_sort_changed(self, event: FilterBar.SortChanged):
         self.sort_order = event.sort_order
 
+    def on_results_sort_clicked(self, event: Results.SortClicked) -> None:
+        self.sort_order = event.sort_order
+
     def on_mount(self) -> None:
         """Load pokemon csv data and push browser screen"""
         try:

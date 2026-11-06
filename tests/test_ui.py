@@ -1218,11 +1218,11 @@ def _collect_once(keys):
     bubbling message again at every parent it passes through."""
     from pokedex_tui.widgets.results import Results
 
-    seen = set()
+    seen = {}
 
     def hook(message):
         if isinstance(message, Results.SelectionChanged) and id(message) not in seen:
-            seen.add(id(message))
+            seen[id(message)] = message
             keys.append(message.key)
 
     return hook
@@ -1726,11 +1726,11 @@ def _collect_criteria(found):
     """Each CriteriaChanged posted by the filter bar, counted once."""
     from pokedex_tui.widgets.filter_bar import FilterBar
 
-    seen = set()
+    seen = {}
 
     def hook(message):
         if isinstance(message, FilterBar.CriteriaChanged) and id(message) not in seen:
-            seen.add(id(message))
+            seen[id(message)] = message
             found.append(message.criteria)
 
     return hook
@@ -2443,11 +2443,11 @@ def _collect_sorts(found):
     """Each SortChanged posted by the filter bar, counted once."""
     from pokedex_tui.widgets.filter_bar import FilterBar
 
-    seen = set()
+    seen = {}
 
     def hook(message):
         if isinstance(message, FilterBar.SortChanged) and id(message) not in seen:
-            seen.add(id(message))
+            seen[id(message)] = message
             found.append(message.sort_order)
 
     return hook
