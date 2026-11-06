@@ -386,7 +386,7 @@ async def test_footer_shows_only_working_keys():
             for _, binding, enabled, _ in app.active_bindings.values()
             if binding.show and enabled
         ]
-        assert sorted(shown) == ["Gen", "Move", "Quit", "Search", "Type"]
+        assert sorted(shown) == ["Gen", "Move", "Quit", "Search", "Sort", "Type"]
 
 
 async def test_move_key_shows_both_arrows():
@@ -1647,7 +1647,7 @@ async def test_sort_box_shows_the_sort_in_words():
     app = make_app()
     async with app.run_test(size=SIZE) as pilot:
         await start(app, pilot)
-        assert " ".join(box_value_text(app, "sort").split()) == "Dex # ascending"
+        assert box_value_text(app, "sort").split()[:3] == ["Dex", "#", "ascending"]
 
 
 async def test_search_box_starts_with_no_search_text():
@@ -2333,3 +2333,344 @@ async def test_gen_picker_sends_no_change_on_start():
         await start(app, pilot)
         await pilot.pause()
         assert found == []
+
+
+# --- Phase 4: sorting controls (U8, PTI-2) ---------------------------------------------
+#
+# Names these tests expect (rename here if you change them):
+# - "s" moves app.sort_order to sort_order.next_field() and "S" to
+#   sort_order.flipped(). The footer shows "Sort" ("S" is hidden). Neither key
+#   does anything while typing in the search box.
+# - A Select with id "sort-select" in the "sort" box, allow_blank=False, with one
+#   option per field in SORT_FIELDS order. Each option's label starts with the
+#   field's words below. Picking a field sets SortOrder.for_field(field).
+# - The Sort box shows "<words> ascending" or "<words> descending", and always
+#   follows app.sort_order, however it was set. The Select sends no SortChanged
+#   when it mounts.
+# - Clicking a heading in the ".headings" line sorts by that column: "#" is
+#   "dex", "Name" is "name", "Total" is "total". Clicking the active heading
+#   again flips the direction. "Types" can't be sorted, so clicking it does
+#   nothing.
+# - The headings line shows one "▲" (ascending) or "▼" (descending) inside the
+#   active column, or none when the sort field has no column (HP to Spe).
+
+SORT_WORDS = {
+    "dex": "Dex #",
+    "name": "Name",
+    "total": "Total",
+    "hp": "HP",
+    "attack": "Atk",
+    "defense": "Def",
+    "sp_atk": "SpA",
+    "sp_def": "SpD",
+    "speed": "Spe",
+}
+
+# Heading text for each sortable column key in results.COLUMNS.
+SORT_HEADINGS = {"dex_id": "#", "name": "Name", "total": "Total"}
+
+
+def sort_select(app):
+    from textual.widgets import Select
+
+    return app.screen.query_one("#sort-select", Select)
+
+
+def sort_box_words(app):
+    """The Sort box's shown value, without the dropdown arrow."""
+    return " ".join(box_value_text(app, "sort").replace("▼", "").split())
+
+
+def headings_text(app):
+    region = app.screen.query_one(".headings").region
+    return row_text(screen_cells(app, region)[0])
+
+
+def heading_span(key):
+    """Where a column's heading sits in the headings line, padding included."""
+    from pokedex_tui.widgets.results import CELL_PADDING, COLUMNS
+
+    start = 0
+    for column_key, _, width, _ in COLUMNS:
+        end = start + width + 2 * CELL_PADDING
+        if column_key == key:
+            return range(start, end)
+        start = end
+    raise KeyError(key)
+
+
+def arrows(app):
+    """(position, arrow) for every sort arrow in the headings line."""
+    return [(i, c) for i, c in enumerate(headings_text(app)) if c in "▲▼"]
+
+
+async def click_heading(pilot, word):
+    app = pilot.app
+    text = headings_text(app)
+    span = heading_span(next(k for k, v in SORT_HEADINGS.items() if v == word))
+    x = text.index(word, span.start)
+    await pilot.click(".headings", offset=(x, 0))
+    await pilot.pause()
+
+
+async def choose_sort(pilot, field):
+    """Focus the Sort dropdown, open it and pick this field."""
+    from textual.widgets import OptionList
+
+    app = pilot.app
+    sort_select(app).focus()
+    await pilot.pause()
+    await pilot.press("enter")
+    await pilot.pause()
+    options = sort_select(app).query_one(OptionList)
+    labels = [
+        str(options.get_option_at_index(i).prompt) for i in range(options.option_count)
+    ]
+    words = SORT_WORDS[field]
+    target = next(
+        i
+        for i, text in enumerate(labels)
+        if text == words or text.startswith(words + " ")
+    )
+    current = options.highlighted or 0
+    step = "down" if target >= current else "up"
+    await pilot.press(*[step] * abs(target - current))
+    await pilot.press("enter")
+    await pilot.pause()
+
+
+def _collect_sorts(found):
+    """Each SortChanged posted by the filter bar, counted once."""
+    from pokedex_tui.widgets.filter_bar import FilterBar
+
+    seen = set()
+
+    def hook(message):
+        if isinstance(message, FilterBar.SortChanged) and id(message) not in seen:
+            seen.add(id(message))
+            found.append(message.sort_order)
+
+    return hook
+
+
+async def test_s_moves_to_the_next_sort_field():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("s")
+        await pilot.pause()
+        assert app.sort_order == SortOrder.for_field("name")
+
+
+async def test_s_twice_sorts_by_total_highest_first():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("s", "s")
+        await pilot.pause()
+        assert app.sort_order == SortOrder(by="total", descending=True)
+        totals = [p.total for p in app.filtered_records]
+        assert totals == sorted(totals, reverse=True)
+        names = [p.display_name for p in app.filtered_records]
+        assert names[0] == "Eternatus Eternamax"
+
+
+async def test_s_wraps_back_to_dex_after_speed():
+    from pokedex_tui.models import DEFAULT_SORT, SORT_FIELDS
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press(*["s"] * len(SORT_FIELDS))
+        await pilot.pause()
+        assert app.sort_order == DEFAULT_SORT
+
+
+async def test_shift_s_flips_the_direction():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("s", "s", "S")
+        await pilot.pause()
+        assert app.sort_order == SortOrder(by="total", descending=False)
+        totals = [p.total for p in app.filtered_records]
+        assert totals == sorted(totals)
+
+
+async def test_sort_keys_type_into_the_search_box():
+    from pokedex_tui.models import DEFAULT_SORT
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press("slash", "s", "S")
+        await pilot.pause(SEARCH_WAIT)
+        assert search_input(app).value == "sS"
+        assert app.sort_order == DEFAULT_SORT
+
+
+async def test_sort_box_starts_as_dex_ascending():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        assert sort_select(app).parent is filter_box(app, "sort")
+        assert sort_box_words(app) == "Dex # ascending"
+
+
+@pytest.mark.parametrize(
+    ("keys", "words"),
+    [
+        (["s"], "Name ascending"),
+        (["s", "s"], "Total descending"),
+        (["s", "s", "S"], "Total ascending"),
+        (["s", "s", "s"], "HP descending"),
+    ],
+)
+async def test_sort_box_shows_each_sort_in_words(keys, words):
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await pilot.press(*keys)
+        await pilot.pause()
+        assert sort_box_words(app) == words
+
+
+async def test_sort_box_follows_the_app_sort_order():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.sort_order = SortOrder.for_field("speed")
+        await pilot.pause()
+        assert sort_box_words(app) == "Spe descending"
+
+
+async def test_sort_dropdown_lists_the_nine_fields_in_order():
+    from textual.widgets import OptionList
+
+    from pokedex_tui.models import SORT_FIELDS
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        sort_select(app).focus()
+        await pilot.pause()
+        await pilot.press("enter")
+        await pilot.pause()
+        assert sort_select(app).expanded
+        options = sort_select(app).query_one(OptionList)
+        labels = [
+            str(options.get_option_at_index(i).prompt)
+            for i in range(options.option_count)
+        ]
+        assert len(labels) == len(SORT_FIELDS)
+        for label, field in zip(labels, SORT_FIELDS, strict=True):
+            words = SORT_WORDS[field]
+            assert label == words or label.startswith(words + " ")
+
+
+async def test_picking_a_field_in_the_dropdown_sorts_by_it():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await choose_sort(pilot, "hp")
+        assert app.sort_order == SortOrder.for_field("hp")
+        assert sort_box_words(app) == "HP descending"
+
+
+async def test_sort_dropdown_sends_no_change_on_start():
+    found = []
+    app = make_app()
+    async with app.run_test(size=SIZE, message_hook=_collect_sorts(found)) as pilot:
+        await start(app, pilot)
+        await pilot.pause()
+        assert found == []
+
+
+async def test_clicking_name_sorts_a_to_z_then_z_to_a():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await click_heading(pilot, "Name")
+        assert app.sort_order == SortOrder(by="name", descending=False)
+        await click_heading(pilot, "Name")
+        assert app.sort_order == SortOrder(by="name", descending=True)
+
+
+async def test_clicking_total_sorts_highest_first():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await click_heading(pilot, "Total")
+        assert app.sort_order == SortOrder(by="total", descending=True)
+
+
+async def test_clicking_the_active_dex_heading_flips_it():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await click_heading(pilot, "#")
+        assert app.sort_order == SortOrder(by="dex", descending=True)
+
+
+async def test_clicking_types_does_not_change_the_sort():
+    from pokedex_tui.models import DEFAULT_SORT
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        x = headings_text(app).index("Types")
+        await pilot.click(".headings", offset=(x, 0))
+        await pilot.pause()
+        assert app.sort_order == DEFAULT_SORT
+
+
+async def test_dex_heading_shows_an_up_arrow_at_start():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        ((at, arrow),) = arrows(app)
+        assert arrow == "▲"
+        assert at in heading_span("dex_id")
+
+
+async def test_arrow_follows_the_active_column():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await click_heading(pilot, "Name")
+        ((at, arrow),) = arrows(app)
+        assert (arrow, at in heading_span("name")) == ("▲", True)
+        await click_heading(pilot, "Name")
+        ((at, arrow),) = arrows(app)
+        assert (arrow, at in heading_span("name")) == ("▼", True)
+        await click_heading(pilot, "Total")
+        ((at, arrow),) = arrows(app)
+        assert (arrow, at in heading_span("total")) == ("▼", True)
+        assert "Name" in headings_text(app) and "Total" in headings_text(app)
+
+
+async def test_no_arrow_when_the_sort_has_no_column():
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.sort_order = SortOrder.for_field("hp")
+        await pilot.pause()
+        assert arrows(app) == []
