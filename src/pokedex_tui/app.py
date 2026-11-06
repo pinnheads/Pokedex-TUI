@@ -50,7 +50,15 @@ class PokedexApp(App):
         Binding("t", "open_picker_one", "Type"),
         Binding("T", "open_picker_two", "Type", show=False),
         Binding("g", "open_picker_generation", "Gen"),
+        Binding("s", "set_next_sort_field", "Sort"),
+        Binding("S", "flip_sort_order", "Sort", show=False),
     ]
+
+    def action_set_next_sort_field(self) -> None:
+        self.sort_order = self.sort_order.next_field()
+
+    def action_flip_sort_order(self) -> None:
+        self.sort_order = self.sort_order.flipped()
 
     def action_focus_search(self) -> None:
         self.screen.query_one("#search-input", Input).focus()

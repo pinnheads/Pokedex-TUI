@@ -9,7 +9,13 @@ from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import Input, Select
 
-from pokedex_tui.models import GENERATIONS, NO_SECOND_TYPE, Criteria, SortOrder
+from pokedex_tui.models import (
+    GENERATIONS,
+    NO_SECOND_TYPE,
+    SORT_FIELDS,
+    Criteria,
+    SortOrder,
+)
 from pokedex_tui.query import type_counts, type_options
 from pokedex_tui.theme import PALETTE
 from pokedex_tui.widgets.box import Box
@@ -21,6 +27,18 @@ if TYPE_CHECKING:
 SEARCH_DEBOUNCE = 0.12
 ANY_TYPE = "any"
 ANY_GENERATION = 0
+
+SORT_WORDS: dict[str, str] = {
+    "dex": "Dex #",
+    "name": "Name",
+    "total": "Total",
+    "hp": "HP",
+    "attack": "Atk",
+    "defense": "Def",
+    "sp_atk": "SpA",
+    "sp_def": "SpD",
+    "speed": "Spe",
+}
 
 
 class FilterBar(Horizontal):
@@ -76,6 +94,14 @@ class FilterBar(Horizontal):
                 )
                 self.screen.query_one(Results.ExtendedTable).focus()
 
+        # sorting picker handling
+        if (
+            event.select.id == "sort-select"
+            and pokedex_app.sort_order.by != current_val
+            and isinstance(current_val, str)
+        ):
+            self.post_message(self.SortChanged(SortOrder.for_field(current_val)))
+
         current_val = frozenset() if not current_val else frozenset({current_val})
         # generation picker handling
         if (
@@ -101,6 +127,7 @@ class FilterBar(Horizontal):
         type1 = self.screen.query_one("#type-1-select", Select)
         type2 = self.screen.query_one("#type-2-select", Select)
         gen = self.screen.query_one("#gen-select", Select)
+        sort = self.screen.query_one("#sort-select", Select)
 
         pokedex_app = cast("PokedexApp", self.app)
 
@@ -128,6 +155,10 @@ class FilterBar(Horizontal):
                 else next(iter(pokedex_app.criteria.generations))
             )
 
+        with sort.prevent(Select.Changed):
+            sort.set_options(self._get_sort_options())
+            sort.value = pokedex_app.sort_order.by
+
     def _send_search(self) -> None:
         current_input_val = self.query_one("#search-input", Input).value
         pokedex_app = cast("PokedexApp", self.app)
@@ -141,6 +172,16 @@ class FilterBar(Horizontal):
             gen_options.append((f"{gen}", gen))
 
         return tuple(gen_options)
+
+    def _get_sort_options(self) -> tuple[tuple[str, str], ...]:
+        order = cast("PokedexApp", self.app).sort_order
+        direction = "descending" if order.descending else "ascending"
+        sort_options: list[tuple[str, str]] = []
+        for field in SORT_FIELDS:
+            words = SORT_WORDS[field]
+            label = f"{words} {direction}" if field == order.by else words
+            sort_options.append((label, field))
+        return tuple(sort_options)
 
     def _get_type_options(self, slot: int) -> tuple[tuple[str | Text, str], ...]:
         original_options = type_options(slot)
@@ -211,7 +252,16 @@ class FilterBar(Horizontal):
             title="Gen",
             id="gen-filter",
         )
-        yield Box(FilterValue("Dex # ascending"), title="Sort", id="sort")
+        yield Box(
+            Select(
+                options=self._get_sort_options(),
+                id="sort-select",
+                allow_blank=False,
+                compact=True,
+            ),
+            title="Sort",
+            id="sort",
+        )
 
 
 class CustomInput(Input):

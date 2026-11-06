@@ -124,6 +124,10 @@ Box:focus-within {
     margin-top: 1;
 }
 
+#sort {
+    width: 18;
+}
+
 #empty-message {
     display: none;
     width: 1fr;
