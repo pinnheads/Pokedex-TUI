@@ -8,11 +8,13 @@ from textual.binding import Binding, BindingType
 from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import DataTable, Static
+from textual.events import Click
 
-from pokedex_tui.models import Pokemon
+from pokedex_tui.models import Pokemon, SortOrder
 from pokedex_tui.theme import PALETTE
 from pokedex_tui.widgets.box import Box
 from pokedex_tui.widgets.type_badge import BADGE_WIDTH, type_badges_text
+
 
 if TYPE_CHECKING:
     from pokedex_tui.app import PokedexApp
@@ -28,6 +30,19 @@ COLUMNS: tuple[tuple[str, str, int, AlignMethod], ...] = (
     ("types", "Types", 2 * BADGE_WIDTH + 1, "left"),
     ("total", "Total", 5, "right"),
 )
+
+COLUMN_SORT_FIELDS: dict[str, str] = {"dex_id": "dex", "name": "name", "total": "total"}
+
+
+def column_at(x: int) -> str | None:
+    """The key of the column at this x position in the headings line if any"""
+    start = 0
+    for key, _, width, _ in COLUMNS:
+        end = start + width + 2 * CELL_PADDING
+        if start <= x < end:
+            return key
+        start = end
+    return None
 
 
 class Results(Widget):
@@ -72,8 +87,17 @@ class Results(Widget):
             self.key = key
 
     class SelectionCleared(Message):
+        """Event emitted when the selection is cleared"""
+
         def __init__(self) -> None:
             super().__init__()
+
+    class SortClicked(Message):
+        """Event emitted when a sortable column heading is clicked"""
+
+        def __init__(self, sort_order: SortOrder) -> None:
+            super().__init__()
+            self.sort_order = sort_order
 
     def __init__(
         self,
@@ -109,14 +133,42 @@ class Results(Widget):
             )
 
     def header_row_text(self) -> Text:
-        """Headings for the table columns, using the same widths as the table"""
+        """
+        Headings for the table columns, using the same widths as the table
+        with an arrow on the column the table is sorted by
+        """
+        order = cast("PokedexApp", self.app).sort_order
+        arrow = "▼" if order.descending else "▲"
         padding = " " * CELL_PADDING
         headings = Text("")
-        for _, heading, width, alignment in COLUMNS:
+        for key, heading, width, alignment in COLUMNS:
+            is_sorted = COLUMN_SORT_FIELDS.get(key) == order.by
+            left = padding
+            if is_sorted and alignment == "right":
+                left = arrow + padding[1:]
+            elif is_sorted:
+                heading = heading + arrow
             cell = Text(heading)
             cell.align(alignment, width=width)
-            headings.append(padding).append(cell).append(padding)
+            headings.append(left).append(cell).append(padding)
         return headings
+
+    def on_click(self, event: Click) -> None:
+        """Sort by the column whose heading was clicked"""
+        headings = self.query_one(".headings", Static)
+        if event.widget is not headings:
+            return
+        field = COLUMN_SORT_FIELDS.get(
+            column_at(event.screen_x - headings.region.x) or ""
+        )
+        if field is None:
+            return
+        current = cast("PokedexApp", self.app).sort_order
+        if field == current.by:
+            new_order = current.flipped()
+        else:
+            new_order = SortOrder.for_field(field)
+        self.post_message(self.SortClicked(new_order))
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         """Updates marker position based on the highlighted row"""
@@ -163,6 +215,7 @@ class Results(Widget):
         """Update records passed in as a tuple[Pokemon, ...]"""
         table = self.query_one(DataTable)
         table.clear()
+        self.query_one(".headings", Static).update(self.header_row_text())
         self.current_marker = None
         self.row_positions = {}
         for pokemon in records:
