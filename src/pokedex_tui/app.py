@@ -49,9 +49,9 @@ class PokedexApp(App):
         Binding("t", "open_picker_one", "Type"),
         Binding("T", "open_picker_two", "Type", show=False),
         Binding("g", "open_picker_generation", "Gen"),
+        Binding("s", "set_next_sort_field", "Sort"),
         Binding("r", "reset", "Reset"),
         Binding("q", "quit", "Quit"),
-        Binding("s", "set_next_sort_field", "Sort"),
         Binding("S", "flip_sort_order", "Sort", show=False),
     ]
 
