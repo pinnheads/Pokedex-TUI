@@ -212,8 +212,21 @@ class Results(Widget):
 
     def update_records(self, records: tuple[Pokemon, ...]) -> None:
         """Update records passed in as a tuple[Pokemon, ...]"""
-        table = self.query_one(DataTable)
-        table.clear()
+        self._fill_rows(records=records)
+
+        if not self.row_positions:
+            self._show_table_rows(show=True)
+            return
+
+        # display table rows with results
+        self._show_table_rows(show=False)
+        # restore cursor position on a refill
+        self._restore_selection(row_positions=self.row_positions)
+
+    def _fill_rows(self, records: tuple[Pokemon, ...]) -> None:
+        """Add rows to the table based on the recrods passed as tuple[Pokemon, ...]"""
+        table_rows = self.query_one(DataTable)
+        table_rows.clear()
         self.query_one(".headings", Static).update(self.header_row_text())
         self.current_marker = None
         self.row_positions = {}
