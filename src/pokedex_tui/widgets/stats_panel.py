@@ -23,28 +23,49 @@ class StatsPanel(Vertical):
         yield Static(classes="total-row")
         yield Static("enter: full details", classes="hint-line")
 
+    def _get_name_text(self, dex_id: int, name: str) -> Text:
+        """Create a Rich Text formatted name and dex_id line for the details panel"""
+        return Text(
+            text=f"#{dex_id:04} ", style=Style(color=PALETTE.muted_text)
+        ).append(text=name, style=Style(bold=True))
+
+    def _get_form_text(self, form: str | None) -> Text:
+        """Create a Rich Text formatted form line for the details panel"""
+        return Text(text=form or "", style=Style(color=PALETTE.accent))
+
+    def _get_type_container(
+        self,
+        generation: int,
+        types: tuple[str] | tuple[str, str],
+        types_container: Horizontal,
+    ) -> None:
+        """Adds the types and gen to the existing types container"""
+        # remove old type badges
+        types_container.remove_children()
+
+        # add new type badges
+        for type_name in types:
+            types_container.mount(TypeBadge(type_name))
+        # mount the generation Static widget to the same container
+        types_container.mount(Static(f"Gen {generation}", classes="generation"))
+
     def show_pokemon(self, pokemon: Pokemon, rank: int, total_count: int) -> None:
 
         # name line
-        self.query_one(selector=".name-line", expect_type=Static).content = Text(
-            text=f"#{pokemon.dex_id:04} ", style=Style(color=PALETTE.muted_text)
-        ).append(text=pokemon.name, style=Style(bold=True))
-
+        self.query_one(
+            selector=".name-line", expect_type=Static
+        ).content = self._get_name_text(dex_id=pokemon.dex_id, name=pokemon.name)
         # form line
-        self.query_one(selector=".form-line", expect_type=Static).content = Text(
-            text=pokemon.form or "", style=Style(color=PALETTE.accent)
-        )
-
+        self.query_one(
+            selector=".form-line", expect_type=Static
+        ).content = self._get_form_text(form=pokemon.form)
         # types line
-        types_container = self.query_one(
-            selector=".types-container", expect_type=Horizontal
+        container = self.query_one(selector=".types-container", expect_type=Horizontal)
+        self._get_type_container(
+            generation=pokemon.generation,
+            types=pokemon.types,
+            types_container=container,
         )
-        # remove all childern of the horizontal container
-        types_container.remove_children()
-        for type_name in pokemon.types:
-            types_container.mount(TypeBadge(type_name=type_name))
-        # mount gen name to the same container
-        types_container.mount(Static(f"Gen {pokemon.generation}", classes="generation"))
 
         # stat rows
         rows = Text("")
