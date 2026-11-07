@@ -218,7 +218,7 @@ class Results(Widget):
         self.current_marker = None
         self.row_positions = {}
         for pokemon in records:
-            row_key = table.add_row(
+            row_key = table_rows.add_row(
                 "",
                 Text(f"{pokemon.dex_id:04}", style=Style(color=PALETTE.muted_text)),
                 pokemon.display_name,
@@ -226,37 +226,44 @@ class Results(Widget):
                 Text(str(pokemon.total), justify="right"),
                 key=pokemon.key,
             )
-            self.row_positions[pokemon.key] = table.get_row_index(row_key)
+            self.row_positions[pokemon.key] = table_rows.get_row_index(row_key)
 
-        # Check if there are no rows and show empty state
-        if not self.row_positions:
-            self._show_empty_state()
-            return
+    def _restore_selection(self, row_positions: dict) -> None:
+        """Restore cursor selection on every refill to the previously selected row key"""
+        table_rows = self.query_one(DataTable)
 
-        # show rows and turn off empty rows message if there are rows to display
-        self.query_one(".headings", Static).display = True
-        # focus on table only when the table was hidden from the empty state message
-        if not table.display:
-            table.display = True
-            table.focus(scroll_visible=False)
-        self.query_one("#empty-message").display = False
-
-        if self.selected_key and self.selected_key in self.row_positions:
+        # check if the previously selected row exists in new rows and move cursor
+        if self.selected_key and self.selected_key in row_positions:
             self._pending_key = self.selected_key
-            table.move_cursor(row=self.row_positions[self.selected_key], scroll=True)
-        else:
-            self._pending_key = next(iter(self.row_positions))
-            table.move_cursor(row=0, scroll=True)
+            table_rows.move_cursor(row=row_positions[self.selected_key], scroll=True)
+        else:  # otherwise move it to the start
+            self._pending_key = next(iter(row_positions))
+            table_rows.move_cursor(row=0, scroll=True)
 
-    def _show_empty_state(self) -> None:
+    def _show_table_rows(self, show: bool) -> None:
         """Shows empty state of the results table"""
-        # set the current selected row to None
-        self.selected_key = None
-        self.post_message(self.SelectionCleared())
+        table_headings = self.query_one(".headings", Static)
+        table_rows = self.query_one(DataTable)
+        empty_message = self.query_one("#empty-message", Static)
 
-        # hide table and headings when no rows to display
-        self.query_one(".headings", Static).display = False
-        self.query_one(DataTable).display = False
+        if show:
+            # set the current selected row to None
+            self.selected_key = None
+            self.post_message(self.SelectionCleared())
 
-        # show empty state message to the user
-        self.query_one("#empty-message").display = True
+            # hide table and headings when no rows to display
+            table_headings.display = False
+            table_rows.display = False
+
+            # show empty state message to the user
+            empty_message.display = True
+        else:
+            # show table heading and rows and move focus to table
+            table_headings.display = True
+            # focus on table rows only when it was hidden due to empty state
+            if not table_rows.display:
+                table_rows.display = True
+                table_rows.focus(scroll_visible=False)
+
+            # turn off empty state message
+            empty_message.display = False
