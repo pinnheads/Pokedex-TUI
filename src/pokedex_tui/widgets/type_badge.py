@@ -47,6 +47,7 @@ class TypeBadge(Static):
             disabled=disabled,
         )
         self.type_name = type_name
+        self.styles.width = BADGE_WIDTH
 
     def on_mount(self) -> None:
         self.update(type_badge_text(self.type_name, self.app.no_color))
