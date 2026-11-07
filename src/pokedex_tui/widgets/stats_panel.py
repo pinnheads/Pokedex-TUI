@@ -49,27 +49,10 @@ class StatsPanel(Vertical):
         # mount the generation Static widget to the same container
         types_container.mount(Static(f"Gen {generation}", classes="generation"))
 
-    def show_pokemon(self, pokemon: Pokemon, rank: int, total_count: int) -> None:
-
-        # name line
-        self.query_one(
-            selector=".name-line", expect_type=Static
-        ).content = self._get_name_text(dex_id=pokemon.dex_id, name=pokemon.name)
-        # form line
-        self.query_one(
-            selector=".form-line", expect_type=Static
-        ).content = self._get_form_text(form=pokemon.form)
-        # types line
-        container = self.query_one(selector=".types-container", expect_type=Horizontal)
-        self._get_type_container(
-            generation=pokemon.generation,
-            types=pokemon.types,
-            types_container=container,
-        )
-
-        # stat rows
+    def _get_stat_rows(self, stats: tuple[int, ...]) -> Text:
+        """Creates Text representation of pokemon stat rows"""
         rows = Text("")
-        for label, stat in zip(LABELS, pokemon.stats, strict=True):
+        for label, stat in zip(LABELS, stats, strict=True):
             # add two newlines every time except for the first line
             if rows:
                 rows.append("\n\n")
@@ -91,22 +74,55 @@ class StatsPanel(Vertical):
                 .append(text=filled_cells_text)
                 .append(text=remaining_cells_text)
             )
-        self.query_one(selector=".stat-rows", expect_type=Static).content = rows
 
-        # total row
+        return rows
+
+    def _get_total_line(self, total: int, rank: int, total_pokemon: int) -> Text:
         total_label = Text(text="Total ", style=Style(color=PALETTE.muted_text))
         total_label.set_length(7)
         total_value = Text(
-            text=f"{pokemon.total}",
+            text=f"{total}",
             style=Style(color=PALETTE.accent, bold=True),
         )
         total_value.align("right", 4)
         rank_line = Text(
-            text=f" rank #{rank} of {total_count}",
+            text=f" rank #{rank} of {total_pokemon}",
             style=Style(color=PALETTE.muted_text),
         )
-        total_line = total_label.append(text=total_value).append(text=rank_line)
-        self.query_one(selector=".total-row", expect_type=Static).content = total_line
+        return total_label.append(text=total_value).append(text=rank_line)
+
+    def show_pokemon(self, pokemon: Pokemon, rank: int, total_count: int) -> None:
+        """Create the final stat panel based on the values passed"""
+
+        # name line
+        self.query_one(
+            selector=".name-line", expect_type=Static
+        ).content = self._get_name_text(dex_id=pokemon.dex_id, name=pokemon.name)
+
+        # form line
+        self.query_one(
+            selector=".form-line", expect_type=Static
+        ).content = self._get_form_text(form=pokemon.form)
+
+        # types line
+        container = self.query_one(selector=".types-container", expect_type=Horizontal)
+        self._get_type_container(
+            generation=pokemon.generation,
+            types=pokemon.types,
+            types_container=container,
+        )
+
+        # stat rows
+        self.query_one(
+            selector=".stat-rows", expect_type=Static
+        ).content = self._get_stat_rows(stats=pokemon.stats)
+
+        # total row
+        self.query_one(
+            selector=".total-row", expect_type=Static
+        ).content = self._get_total_line(
+            total=pokemon.total, rank=rank, total_pokemon=total_count
+        )
 
     def clear_pokemon(self):
         self.query_one(".name-line", Static).content = ""
