@@ -228,16 +228,9 @@ class Results(Widget):
             )
             self.row_positions[pokemon.key] = table.get_row_index(row_key)
 
-        # Check if there are no rows
+        # Check if there are no rows and show empty state
         if not self.row_positions:
-            self.selected_key = None
-            message = self.SelectionCleared()
-            self.post_message(message)
-            # hide table and headings when no rows to display
-            self.query_one(".headings", Static).display = False
-            table.display = False
-            # show appropriate message to the user on empty rows
-            self.query_one("#empty-message").display = True
+            self._show_empty_state()
             return
 
         # show rows and turn off empty rows message if there are rows to display
@@ -254,3 +247,16 @@ class Results(Widget):
         else:
             self._pending_key = next(iter(self.row_positions))
             table.move_cursor(row=0, scroll=True)
+
+    def _show_empty_state(self) -> None:
+        """Shows empty state of the results table"""
+        # set the current selected row to None
+        self.selected_key = None
+        self.post_message(self.SelectionCleared())
+
+        # hide table and headings when no rows to display
+        self.query_one(".headings", Static).display = False
+        self.query_one(DataTable).display = False
+
+        # show empty state message to the user
+        self.query_one("#empty-message").display = True
