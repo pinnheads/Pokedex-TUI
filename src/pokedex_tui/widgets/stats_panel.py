@@ -22,7 +22,10 @@ class StatsPanel(Vertical):
         """Adds these widgets to screen, data is added later"""
         yield Static(classes="name-line")
         yield Static(classes="form-line")
-        yield Horizontal(classes="types-container")
+        with Horizontal(classes="types-container"):
+            yield TypeBadge(classes="type1-badge")
+            yield TypeBadge(classes="type2-badge")
+            yield Static("", classes="generation")
         yield Static(classes="stat-rows")
         yield Static(classes="total-row")
         yield Static("enter: full details", classes="hint-line")
@@ -41,17 +44,21 @@ class StatsPanel(Vertical):
         self,
         generation: int,
         types: tuple[str] | tuple[str, str],
-        types_container: Horizontal,
     ) -> None:
         """Adds the types and gen to the existing types container"""
-        # remove old type badges
-        types_container.remove_children()
+        # already mounted badges
+        type1_badge = self.query_one(".type1-badge", TypeBadge)
+        type2_badge = self.query_one(".type1-badge", TypeBadge)
+
+        # already mounted gen static
+        gen_static = self.query_one(".generation", Static)
 
         # add new type badges
-        for type_name in types:
-            types_container.mount(TypeBadge(type_name))
-        # mount the generation Static widget to the same container
-        types_container.mount(Static(f"Gen {generation}", classes="generation"))
+        type1_badge.set_type(types[0])
+        if len(types) > 1:
+            type2_badge.set_type(types[1])
+        # Update the generation Static widget to the same container
+        gen_static.content = f"Gen {generation}"
 
     def _get_stat_rows(self, stats: tuple[int, ...]) -> Text:
         """Creates Text representation of pokemon stat rows"""
@@ -109,11 +116,9 @@ class StatsPanel(Vertical):
         ).content = self._get_form_text(form=pokemon.form)
 
         # types line
-        container = self.query_one(selector=".types-container", expect_type=Horizontal)
         self._get_type_container(
             generation=pokemon.generation,
             types=pokemon.types,
-            types_container=container,
         )
 
         # stat rows
@@ -133,4 +138,6 @@ class StatsPanel(Vertical):
         self.query_one(".form-line", Static).content = ""
         self.query_one(".stat-rows", Static).content = ""
         self.query_one(".total-row", Static).content = ""
-        self.query_one(".types-container", Horizontal).remove_children()
+        self.query_one(".type1-badge", TypeBadge).set_type(None)
+        self.query_one(".type1-badge", TypeBadge).set_type(None)
+        self.query_one(".generation", Static).content = ""
