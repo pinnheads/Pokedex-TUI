@@ -9,6 +9,10 @@ from pokedex_tui.theme import BAR_WIDTH, PALETTE, band_colour, filled_cells
 from pokedex_tui.widgets.type_badge import TypeBadge
 
 LABELS = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
+STAT_LABEL_WIDTH = 8
+STAT_VALUE_WIDTH = 3
+TOTAL_LABEL_WIDTH = 7
+TOTAL_VALUE_WIDTH = 4
 
 
 class StatsPanel(Vertical):
@@ -57,9 +61,9 @@ class StatsPanel(Vertical):
             if rows:
                 rows.append("\n\n")
             label_text = Text(text=label, style=Style(color=PALETTE.muted_text))
-            label_text.set_length(8)
+            label_text.set_length(STAT_LABEL_WIDTH)
             stat_value_text = Text(text=f"{stat}", style=Style(bold=True))
-            stat_value_text.align(align="right", width=3)
+            stat_value_text.align(align="right", width=STAT_VALUE_WIDTH)
             filled_cells_text = Text(
                 text="█" * filled_cells(stat), style=Style(color=band_colour(stat))
             )
@@ -79,12 +83,12 @@ class StatsPanel(Vertical):
 
     def _get_total_line(self, total: int, rank: int, total_pokemon: int) -> Text:
         total_label = Text(text="Total ", style=Style(color=PALETTE.muted_text))
-        total_label.set_length(7)
+        total_label.set_length(TOTAL_LABEL_WIDTH)
         total_value = Text(
             text=f"{total}",
             style=Style(color=PALETTE.accent, bold=True),
         )
-        total_value.align("right", 4)
+        total_value.align("right", TOTAL_VALUE_WIDTH)
         rank_line = Text(
             text=f" rank #{rank} of {total_pokemon}",
             style=Style(color=PALETTE.muted_text),
