@@ -7,7 +7,7 @@ from pokedex_tui.theme import TYPE_STYLES
 BADGE_WIDTH = 10
 
 
-def type_badge_text(no_color: bool, type_name: str) -> Text:
+def type_badge_text(type_name: str, no_color: bool) -> Text:
     """single type badge: the name in capitals, centred in BADGE_WIDTH cells"""
     if no_color:
         badge = Text(f"[{type_name.upper()}]")
