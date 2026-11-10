@@ -170,18 +170,28 @@ class Results(Widget):
         self.post_message(self.SortClicked(new_order))
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        """Updates marker position based on the highlighted row"""
+        """
+        Updates marker position based on the highlighted row
+        Following events are ignored:
+         - When the row has no key in cases when nothing is highlighted or table is being cleared.
+         - A refill of the table is in progress and the current row is not the one we are waiting for
+         - No refill is in progress and its the row that is already selected
+        """
 
+        # Row has no key
         if event.row_key.value is None:
             return
 
+        # Refill of row is in progress but the current row key is not the correct one
         if self._pending_key and event.row_key.value != self._pending_key:
             return
 
-        if self._pending_key and event.row_key.value == self._pending_key:
-            self._pending_key = None
-        elif not self._pending_key and self.selected_key == event.row_key.value:
+        # No refill in progress and it is the row that is already selected
+        if not self._pending_key and self.selected_key == event.row_key.value:
             return
+        # awaited row arrives so _pending_key is cleared
+        elif self._pending_key and event.row_key.value == self._pending_key:
+            self._pending_key = None
 
         self.selected_key = event.row_key.value
         # emit an event on current highlighted row change
