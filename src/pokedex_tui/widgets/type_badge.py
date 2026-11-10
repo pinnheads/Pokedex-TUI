@@ -7,7 +7,7 @@ from pokedex_tui.theme import TYPE_STYLES
 BADGE_WIDTH = 10
 
 
-def type_badge_text(type_name: str, no_color: bool) -> Text:
+def type_badge_text(no_color: bool, type_name: str) -> Text:
     """single type badge: the name in capitals, centred in BADGE_WIDTH cells"""
     if no_color:
         badge = Text(f"[{type_name.upper()}]")
@@ -22,13 +22,15 @@ def type_badge_text(type_name: str, no_color: bool) -> Text:
 
 def type_badges_text(types: tuple[str, ...], no_color: bool) -> Text:
     """Every badge for one Pokemon, with one space between them"""
-    return Text(" ").join(type_badge_text(name, no_color) for name in types)
+    return Text(" ").join(
+        type_badge_text(type_name=name, no_color=no_color) for name in types
+    )
 
 
 class TypeBadge(Static):
     def __init__(
         self,
-        type_name: str,
+        type_name: str | None = None,
         expand: bool = False,
         shrink: bool = False,
         name: str | None = None,
@@ -50,4 +52,13 @@ class TypeBadge(Static):
         self.styles.width = BADGE_WIDTH
 
     def on_mount(self) -> None:
-        self.update(type_badge_text(self.type_name, self.app.no_color))
+        self.set_type(name=self.type_name)
+
+    def set_type(self, name: str | None = None) -> None:
+        if name is not None:
+            self.type_name = name
+            self.update(
+                type_badge_text(type_name=self.type_name, no_color=self.app.no_color)
+            )
+        else:
+            self.display = False
