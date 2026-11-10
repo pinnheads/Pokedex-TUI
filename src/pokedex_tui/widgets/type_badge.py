@@ -56,6 +56,7 @@ class TypeBadge(Static):
 
     def set_type(self, name: str | None = None) -> None:
         if name is not None:
+            self.display = True
             self.type_name = name
             self.update(
                 type_badge_text(type_name=self.type_name, no_color=self.app.no_color)

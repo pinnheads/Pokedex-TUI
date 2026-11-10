@@ -1327,7 +1327,9 @@ async def test_an_empty_list_clears_the_selection_and_the_details_pane():
         panel = app.screen.query_one(StatsPanel)
         for line in (".name-line", ".form-line", ".stat-rows", ".total-row"):
             assert str(panel.query_one(line).render()).strip() == "", line
-        assert len(panel.query_one(".types-container").children) == 0
+        # nothing visible on the types line: badges hidden, generation blank
+        for child in panel.query_one(".types-container").children:
+            assert not child.display or str(child.render()).strip() == "", child
 
 
 async def test_the_list_coming_back_after_empty_selects_the_first_row(all_records):
