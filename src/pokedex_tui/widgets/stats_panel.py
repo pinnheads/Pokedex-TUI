@@ -48,7 +48,7 @@ class StatsPanel(Vertical):
         """Adds the types and gen to the existing types container"""
         # already mounted badges
         type1_badge = self.query_one(".type1-badge", TypeBadge)
-        type2_badge = self.query_one(".type1-badge", TypeBadge)
+        type2_badge = self.query_one(".type2-badge", TypeBadge)
 
         # already mounted gen static
         gen_static = self.query_one(".generation", Static)
@@ -57,6 +57,8 @@ class StatsPanel(Vertical):
         type1_badge.set_type(types[0])
         if len(types) > 1:
             type2_badge.set_type(types[1])
+        else:
+            type2_badge.set_type(None)
         # Update the generation Static widget to the same container
         gen_static.content = f"Gen {generation}"
 
@@ -139,5 +141,5 @@ class StatsPanel(Vertical):
         self.query_one(".stat-rows", Static).content = ""
         self.query_one(".total-row", Static).content = ""
         self.query_one(".type1-badge", TypeBadge).set_type(None)
-        self.query_one(".type1-badge", TypeBadge).set_type(None)
+        self.query_one(".type2-badge", TypeBadge).set_type(None)
         self.query_one(".generation", Static).content = ""
