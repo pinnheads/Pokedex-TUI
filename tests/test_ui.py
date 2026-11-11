@@ -2948,3 +2948,144 @@ async def test_typing_gengar_opens_nothing_and_keeps_the_sort():
         assert app.sort_order == DEFAULT_SORT
         assert app.criteria == Criteria(search="Gengar")
         assert focused_place(app) == "search-bar"
+
+    # --- Tech debt: keys and refresh with another screen open (PTI-105) -------------------
+
+
+#
+# How to add: paste this whole section at the END of tests/test_ui.py, with two
+# blank lines before it.
+# Nothing else in the file changes.
+#
+# Names these tests expect:
+# - The filter, sort and reset keys (/, t, T, g, s, S, r) live on the Browser
+#   screen, so they do nothing while another screen is on top.
+# - q (Quit) stays on PokedexApp and works on every screen.
+# - PokedexApp.criteria, PokedexApp.sort_order and
+#   PokedexApp.update_filtered_records stay on the app (older tests patch
+#   pokedex_tui.app.filter_and_sort). The refresh finds the Browser screen
+#   directly instead of using app.screen.
+
+
+def _other_screen():
+    """A plain screen with none of the Browser widgets on it."""
+    from textual.screen import Screen
+    from textual.widgets import Static
+
+    class OtherScreen(Screen):
+        def compose(self):
+            yield Static("another screen")
+
+    return OtherScreen()
+
+
+async def _push_other_screen(app, pilot):
+    other = _other_screen()
+    app.push_screen(other)
+    await pilot.pause()
+    assert app.screen is other
+    return other
+
+
+@pytest.mark.parametrize("key", ["r", "slash", "t", "T", "g", "s", "S"])
+async def test_filter_keys_do_nothing_on_another_screen(key):
+    from pokedex_tui.models import Criteria, SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="char")
+        app.sort_order = SortOrder.for_field("total")
+        await pilot.pause()
+        other = await _push_other_screen(app, pilot)
+
+        await pilot.press(key)
+        await pilot.pause()
+
+        assert app.is_running
+        assert app.return_code is None
+        assert app.screen is other
+        assert app.criteria == Criteria(search="char")
+        assert app.sort_order == SortOrder.for_field("total")
+
+
+async def test_a_criteria_change_on_another_screen_updates_the_browser():
+    from pokedex_tui.models import Criteria
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await _push_other_screen(app, pilot)
+
+        app.criteria = Criteria(search="char")
+        await pilot.pause()
+        assert app.is_running
+        assert app.return_code is None
+
+        app.pop_screen()
+        await pilot.pause()
+        table = table_of(app)
+        assert table.row_count == 9
+        assert count_text(app) == "9 of 1215"
+        assert [row(table, i)[NAME] for i in range(3)] == [
+            "Charmander",
+            "Charmeleon",
+            "Charizard",
+        ]
+
+
+async def test_a_sort_change_on_another_screen_updates_the_browser():
+    from textual.widgets import Select
+
+    from pokedex_tui.models import SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await _push_other_screen(app, pilot)
+
+        app.sort_order = SortOrder.for_field("total")
+        await pilot.pause()
+        assert app.is_running
+        assert app.return_code is None
+
+        app.pop_screen()
+        await pilot.pause()
+        table = table_of(app)
+        totals = [int(row(table, i)[TOTAL]) for i in range(5)]
+        assert totals == sorted(totals, reverse=True)
+        assert totals[0] == max(p.total for p in app.all_records)
+        assert app.screen.query_one("#sort-select", Select).value == "total"
+
+
+async def test_keys_work_again_after_leaving_the_other_screen():
+    from pokedex_tui.models import DEFAULT_SORT, Criteria, SortOrder
+
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        app.criteria = Criteria(search="char")
+        await pilot.pause()
+        await _push_other_screen(app, pilot)
+        app.pop_screen()
+        await pilot.pause()
+
+        await pilot.press("s")
+        await pilot.pause()
+        assert app.sort_order == SortOrder.for_field("name")
+
+        await pilot.press("r")
+        await pilot.pause()
+        assert app.criteria == Criteria()
+        assert app.sort_order == DEFAULT_SORT
+        assert count_text(app) == "1215 of 1215"
+
+
+async def test_q_quits_from_another_screen():
+    app = make_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await start(app, pilot)
+        await _push_other_screen(app, pilot)
+        await pilot.press("q")
+        await pilot.pause()
+    assert app.return_code == 0
