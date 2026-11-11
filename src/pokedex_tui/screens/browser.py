@@ -1,6 +1,8 @@
 from collections.abc import Mapping
+from typing import ClassVar
 
 from textual.app import ComposeResult
+from textual.binding import Binding, BindingType
 from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Footer
@@ -14,6 +16,16 @@ from pokedex_tui.widgets.stats_panel import StatsPanel
 
 class Browser(Screen):
     """Browser Screen for the main app"""
+
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("/", "app.focus_search", "Search"),
+        Binding("t", "app.open_picker_one", "Type"),
+        Binding("T", "app.open_picker_two", "Type", show=False),
+        Binding("g", "app.open_picker_generation", "Gen"),
+        Binding("s", "app.set_next_sort_field", "Sort"),
+        Binding("r", "app.reset", "Reset"),
+        Binding("S", "app.flip_sort_order", "Sort", show=False),
+    ]
 
     def __init__(
         self,

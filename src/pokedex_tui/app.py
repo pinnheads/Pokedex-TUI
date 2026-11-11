@@ -38,6 +38,7 @@ class PokedexApp(App):
         self.theme = APP_THEME.name
         self.filtered_records = ()
         self._resetting = False
+        self._browser: Browser | None = None
 
     CSS_PATH = "styles/app.tcss"
     TITLE = "Pokédex"
@@ -46,24 +47,23 @@ class PokedexApp(App):
     sort_order = reactive(DEFAULT_SORT, init=False)
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("/", "focus_search", "Search"),
-        Binding("t", "open_picker_one", "Type"),
-        Binding("T", "open_picker_two", "Type", show=False),
-        Binding("g", "open_picker_generation", "Gen"),
-        Binding("s", "set_next_sort_field", "Sort"),
-        Binding("r", "reset", "Reset"),
         Binding("q", "quit", "Quit"),
-        Binding("S", "flip_sort_order", "Sort", show=False),
     ]
+
+    @property
+    def browser_screen(self) -> Browser:
+        if self._browser is not None:
+            return self._browser
+        raise RuntimeError("Browser screen is not ready yet")
 
     def action_reset(self) -> None:
         self._resetting = True
         self.criteria = Criteria()
         self.sort_order = DEFAULT_SORT
         self._resetting = False
-        self.screen.query_one(CustomInput).value = ""
+        self.browser_screen.query_one(CustomInput).value = ""
         self.update_filtered_records()
-        self.screen.query_one(FilterBar)._refresh_pickers()
+        self.browser_screen.query_one(FilterBar)._refresh_pickers()
 
     def action_set_next_sort_field(self) -> None:
         self.sort_order = self.sort_order.next_field()
@@ -72,20 +72,20 @@ class PokedexApp(App):
         self.sort_order = self.sort_order.flipped()
 
     def action_focus_search(self) -> None:
-        self.screen.query_one("#search-input", Input).focus()
+        self.browser_screen.query_one("#search-input", Input).focus()
 
     def action_open_picker_one(self) -> None:
-        self.screen.query_one(
+        self.browser_screen.query_one(
             selector="#type-1-select", expect_type=Select
         ).focus().expanded = True
 
     def action_open_picker_two(self) -> None:
-        self.screen.query_one(
+        self.browser_screen.query_one(
             selector="#type-2-select", expect_type=Select
         ).focus().expanded = True
 
     def action_open_picker_generation(self) -> None:
-        self.screen.query_one(
+        self.browser_screen.query_one(
             selector="#gen-select", expect_type=Select
         ).focus().expanded = True
 
@@ -93,22 +93,22 @@ class PokedexApp(App):
         if self._resetting:
             return
         self.update_filtered_records()
-        self.screen.query_one(FilterBar)._refresh_pickers()
+        self.browser_screen.query_one(FilterBar)._refresh_pickers()
 
     def watch_sort_order(self) -> None:
         if self._resetting:
             return
         self.update_filtered_records()
-        self.screen.query_one(FilterBar)._refresh_pickers()
+        self.browser_screen.query_one(FilterBar)._refresh_pickers()
 
     def update_filtered_records(self) -> None:
         self.filtered_records = filter_and_sort(
             self.all_records, self.criteria, self.sort_order
         )
-        result_widget = self.screen.query_one(Results)
+        result_widget = self.browser_screen.query_one(Results)
         result_widget.update_records(self.filtered_records)
         # update live match count
-        header = self.screen.query_one(PokedexHeader)
+        header = self.browser_screen.query_one(PokedexHeader)
         header.set_header_match_count(len(self.filtered_records))
 
     def on_filter_bar_criteria_changed(self, event: FilterBar.CriteriaChanged):
@@ -127,6 +127,7 @@ class PokedexApp(App):
             self.total_ranks = total_ranks(all_records)
             self.all_records = all_records
             self.filtered_records = all_records
-            self.push_screen(Browser(all_records=all_records, ranks=self.total_ranks))
+            self._browser = Browser(all_records=all_records, ranks=self.total_ranks)
+            self.push_screen(self.browser_screen)
         except PokedexDataError as e:
             self.exit(message=str(e), return_code=1)
