@@ -2949,10 +2949,8 @@ async def test_typing_gengar_opens_nothing_and_keeps_the_sort():
         assert app.criteria == Criteria(search="Gengar")
         assert focused_place(app) == "search-bar"
 
-    # --- Tech debt: keys and refresh with another screen open (PTI-105) -------------------
 
-
-#
+# --- Tech debt: keys and refresh with another screen open (PTI-105) -------------------
 # How to add: paste this whole section at the END of tests/test_ui.py, with two
 # blank lines before it.
 # Nothing else in the file changes.
