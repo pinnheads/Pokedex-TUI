@@ -123,7 +123,7 @@ class FilterBar(Horizontal):
 
             self.screen.query_one(Results.ExtendedTable).focus()
 
-    def _refresh_pickers(self) -> None:
+    def refresh_pickers(self) -> None:
         type1 = self.screen.query_one("#type-1-select", Select)
         type2 = self.screen.query_one("#type-2-select", Select)
         gen = self.screen.query_one("#gen-select", Select)
@@ -214,7 +214,7 @@ class FilterBar(Horizontal):
         )
 
     def on_mount(self) -> None:
-        self._refresh_pickers()
+        self.refresh_pickers()
 
     def compose(self) -> ComposeResult:
         yield Box(

@@ -56,14 +56,19 @@ class PokedexApp(App):
             return self._browser
         raise RuntimeError("Browser screen is not ready yet")
 
+    def refresh_results(self) -> None:
+        self.update_filtered_records()
+        self.browser_screen.query_one(FilterBar).refresh_pickers()
+
     def action_reset(self) -> None:
         self._resetting = True
-        self.criteria = Criteria()
-        self.sort_order = DEFAULT_SORT
-        self._resetting = False
-        self.browser_screen.query_one(CustomInput).value = ""
-        self.update_filtered_records()
-        self.browser_screen.query_one(FilterBar)._refresh_pickers()
+        try:
+            self.criteria = Criteria()
+            self.sort_order = DEFAULT_SORT
+            self.browser_screen.query_one(CustomInput).value = ""
+            self.refresh_results()
+        finally:
+            self._resetting = False
 
     def action_set_next_sort_field(self) -> None:
         self.sort_order = self.sort_order.next_field()
@@ -92,14 +97,12 @@ class PokedexApp(App):
     def watch_criteria(self) -> None:
         if self._resetting:
             return
-        self.update_filtered_records()
-        self.browser_screen.query_one(FilterBar)._refresh_pickers()
+        self.refresh_results()
 
     def watch_sort_order(self) -> None:
         if self._resetting:
             return
-        self.update_filtered_records()
-        self.browser_screen.query_one(FilterBar)._refresh_pickers()
+        self.refresh_results()
 
     def update_filtered_records(self) -> None:
         self.filtered_records = filter_and_sort(
