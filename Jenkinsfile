@@ -42,12 +42,18 @@ pipeline {
 
     environment {
         UV_NO_PROGRESS = '1'
+        // The uv cache (HOME=/tmp in the container) and the workspace are on different
+        // filesystems, so uv can't hardlink; say so up front instead of warning every run.
+        UV_LINK_MODE = 'copy'
     }
 
     stages {
         stage('Guard') {
             // The release commit this pipeline pushes to main must not set off another release.
-            when { branch 'main' }
+            when {
+                beforeAgent true
+                branch 'main'
+            }
             agent { label 'built-in' }
             steps {
                 script {

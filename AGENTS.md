@@ -15,7 +15,7 @@ The checks run in parallel on:
 | Stage | Where |
 |---|---|
 | macOS | the Mac mini agent (`macos`). Non-admin `jenkins` user, so `uv` comes from the shared Homebrew prefix (`/opt/homebrew/bin`). uv fetches Python 3.14 from `.python-version`. |
-| Linux | `ghcr.io/astral-sh/uv:python3.14-trixie` on the controller (`built-in`), with `HOME=/tmp`. Not `HOME=$WORKSPACE`: uv's cache would land in the workspace and ruff would lint it. |
+| Linux | `ghcr.io/astral-sh/uv:python3.14-trixie` on the controller (`built-in`), with `HOME=/tmp`. Not `HOME=$WORKSPACE`: uv's cache would land in the workspace and ruff would lint it. The image has no Node.js, which is why the dev dependency is `pyright[nodejs]`: without that extra, pyright tries to download Node itself through `nodeenv`, and that fails in the container. |
 
 **Release** runs in the same Linux container. It calls python-semantic-release via `uvx`, so it isn't in `uv.lock`. The config lives under `[tool.semantic_release]` in `pyproject.toml`. Semantic-release:
 1. Works out the next version from conventional commits since the last `v*` tag: `feat:` → minor, `fix:`/`perf:` → patch, `!` or `BREAKING CHANGE` → major. `chore:` and other types don't release, so a main build with none of those is a no-op.
