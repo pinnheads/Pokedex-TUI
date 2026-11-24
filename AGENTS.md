@@ -6,9 +6,7 @@ One multibranch job, `pokedex-tui`. `Jenkinsfile` is the only CI; there are no G
 Actions in this repo. Every branch and PR runs the same checks; only `main` releases:
 - **any branch / PR** → `uv sync --locked --dev`, `ruff check`, `ruff format --check`,
   `pyright`, `pytest -n auto`. JUnit results show in Jenkins' test report.
-- **main** → the same checks, then **Release**. A push that starts with
-  `chore(release):` is the pipeline's own release commit and ends `NOT_BUILT` at the
-  Guard stage, so it never releases twice.
+- **main** → the same checks, then **Release**.
 
 The checks run in parallel on:
 
@@ -19,12 +17,12 @@ The checks run in parallel on:
 
 **Release** runs in the same Linux container. It calls python-semantic-release via `uvx`, so it isn't in `uv.lock`. The config lives under `[tool.semantic_release]` in `pyproject.toml`. Semantic-release:
 1. Works out the next version from conventional commits since the last `v*` tag: `feat:` → minor, `fix:`/`perf:` → patch, `!` or `BREAKING CHANGE` → major. `chore:` and other types don't release, so a main build with none of those is a no-op.
-2. Bumps `pyproject.toml`, re-locks `uv.lock` (it holds the project's own version, and `uv sync --locked` fails without it), and updates `CHANGELOG.md`.
-3. Builds the wheel and sdist, commits `chore(release): X.Y.Z`, and tags `vX.Y.Z`.
-4. Pushes the commit and the tag over HTTPS with the `GITHUB_PAT` credential (Contents read/write on this repo).
+2. Writes that version into `pyproject.toml` **in the Jenkins workspace only** and runs `uv build`, so the wheel and sdist carry it.
+3. Tags the main commit that was just tested `vX.Y.Z` and pushes **only the tag** over HTTPS with the `GITHUB_PAT` credential (Contents read/write on this repo).
 
-Jenkins archives `dist/*`. There is no GitHub release and no PyPI upload. The version is
-never bumped by hand, so don't edit `project.version` or `CHANGELOG.md` in a PR.
+**Releases are tag-only. Nothing is ever committed to main.** main's ruleset requires every change to go through a PR, so a release commit is rejected (`GH013`). The `v*` tags are the version history. `project.version` in `pyproject.toml` stays at its placeholder `0.1.0` on main, so don't bump it by hand: semantic-release ignores it and reads the tags. There is no `CHANGELOG.md`.
+
+Jenkins archives `dist/*`. There is no GitHub release and no PyPI upload.
 
 Preview the next version locally:
 

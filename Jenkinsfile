@@ -12,11 +12,15 @@
 //
 // main, once both pass: a release. python-semantic-release works out the next version
 // from conventional commits since the last v* tag (feat -> minor, fix/perf -> patch,
-// "!" or BREAKING CHANGE -> major), bumps pyproject.toml and uv.lock, updates
-// CHANGELOG.md, builds the wheel and sdist, commits "chore(release): X.Y.Z", tags
-// vX.Y.Z and pushes both. Jenkins archives dist/. No commits worth a release -> no-op.
+// "!" or BREAKING CHANGE -> major), writes it into pyproject.toml in the workspace only,
+// builds the wheel and sdist, tags the main commit vX.Y.Z and pushes just the tag.
+// Jenkins archives dist/. No commits worth a release -> no-op.
 //
-// GITHUB_PAT needs Contents read/write on this repo (push the release commit and tag).
+// Tag only, never a commit: main's ruleset requires every change to come through a PR,
+// so a release commit can't be pushed. The tag is the record of the version, and
+// pyproject.toml on main keeps its placeholder 0.1.0.
+//
+// GITHUB_PAT needs Contents read/write on this repo (push the tag).
 
 // Same checks on both platforms; mirrors what pre-commit runs locally, plus the tests.
 def checks() {
@@ -48,31 +52,7 @@ pipeline {
     }
 
     stages {
-        stage('Guard') {
-            // The release commit this pipeline pushes to main must not set off another release.
-            when {
-                beforeAgent true
-                branch 'main'
-            }
-            agent { label 'built-in' }
-            steps {
-                script {
-                    def subject = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
-                    if (subject.startsWith('chore(release):')) {
-                        env.SKIP_BUILD = 'true'
-                        currentBuild.result = 'NOT_BUILT'
-                        currentBuild.description = "Skipped: ${subject}"
-                        echo "Release commit (${subject}); nothing to do."
-                    }
-                }
-            }
-            post {
-                always { cleanWs() }
-            }
-        }
-
         stage('Checks') {
-            when { not { environment name: 'SKIP_BUILD', value: 'true' } }
             parallel {
                 stage('macOS') {
                     agent { label 'macos' }
@@ -111,10 +91,8 @@ pipeline {
 
         stage('Release') {
             when {
-                allOf {
-                    branch 'main'
-                    not { environment name: 'SKIP_BUILD', value: 'true' }
-                }
+                beforeAgent true
+                branch 'main'
             }
             agent {
                 docker {
@@ -124,8 +102,9 @@ pipeline {
                 }
             }
             environment {
-                // semantic-release reads GH_TOKEN and pushes over HTTPS with it.
+                // semantic-release reads GH_TOKEN and pushes the tag over HTTPS with it.
                 GH_TOKEN = credentials('GITHUB_PAT')
+                // Annotated tags need a tagger identity; the container has no git config.
                 GIT_COMMIT_AUTHOR = 'semantic-release <semantic-release>'
                 GIT_COMMITTER_NAME = 'semantic-release'
                 GIT_COMMITTER_EMAIL = 'semantic-release'
@@ -141,12 +120,15 @@ pipeline {
                     else
                         git fetch -q --tags --force origin
                     fi
-                    # Jenkins checks out a detached HEAD; semantic-release needs to be on main.
+                    # Jenkins checks out a detached HEAD; semantic-release only releases from a
+                    # branch in its release groups, so put it on main.
                     git checkout -q -B main HEAD
-                    git branch -q --set-upstream-to=origin/main main
 
                     # uvx, so semantic-release doesn't have to be in uv.lock.
-                    uvx --from "python-semantic-release>=10,<11" semantic-release version --no-vcs-release
+                    # --no-commit: stamp the version and build, but tag the existing main commit
+                    # and push only the tag (main rejects direct pushes).
+                    uvx --from "python-semantic-release>=10,<11" semantic-release version \
+                        --no-commit --no-changelog --no-vcs-release
                 '''
                 script {
                     def tag = sh(script: 'git describe --tags --exact-match HEAD 2>/dev/null || true',
