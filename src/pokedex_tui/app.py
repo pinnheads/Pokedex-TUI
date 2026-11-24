@@ -58,7 +58,9 @@ class PokedexApp(App):
 
     def refresh_results(self) -> None:
         self.update_filtered_records()
-        self.browser_screen.query_one(FilterBar).refresh_pickers()
+        filter_bar = self.browser_screen.query_one(FilterBar)
+        filter_bar.refresh_filter_pickers()
+        filter_bar.refresh_sort_pickers()
 
     def action_reset(self) -> None:
         self._resetting = True
@@ -102,7 +104,7 @@ class PokedexApp(App):
     def watch_sort_order(self) -> None:
         if self._resetting:
             return
-        self.refresh_results()
+        self.browser_screen.query_one(FilterBar).refresh_sort_pickers()
 
     def update_filtered_records(self) -> None:
         self.filtered_records = filter_and_sort(

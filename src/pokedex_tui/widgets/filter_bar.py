@@ -123,11 +123,19 @@ class FilterBar(Horizontal):
 
             self.screen.query_one(Results.ExtendedTable).focus()
 
-    def refresh_pickers(self) -> None:
+    def refresh_sort_pickers(self) -> None:
+        sort = self.screen.query_one("#sort-select", Select)
+
+        pokedex_app = cast("PokedexApp", self.app)
+
+        with sort.prevent(Select.Changed):
+            sort.set_options(self._get_sort_options())
+            sort.value = pokedex_app.sort_order.by
+
+    def refresh_filter_pickers(self) -> None:
         type1 = self.screen.query_one("#type-1-select", Select)
         type2 = self.screen.query_one("#type-2-select", Select)
         gen = self.screen.query_one("#gen-select", Select)
-        sort = self.screen.query_one("#sort-select", Select)
 
         pokedex_app = cast("PokedexApp", self.app)
 
@@ -154,10 +162,6 @@ class FilterBar(Horizontal):
                 if not pokedex_app.criteria.generations
                 else next(iter(pokedex_app.criteria.generations))
             )
-
-        with sort.prevent(Select.Changed):
-            sort.set_options(self._get_sort_options())
-            sort.value = pokedex_app.sort_order.by
 
     def _send_search(self) -> None:
         current_input_val = self.query_one("#search-input", Input).value
@@ -214,7 +218,8 @@ class FilterBar(Horizontal):
         )
 
     def on_mount(self) -> None:
-        self.refresh_pickers()
+        self.refresh_filter_pickers()
+        self.refresh_sort_pickers()
 
     def compose(self) -> ComposeResult:
         yield Box(
