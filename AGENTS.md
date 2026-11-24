@@ -18,11 +18,14 @@ The checks run in parallel on:
 **Release** runs in the same Linux container. It calls python-semantic-release via `uvx`, so it isn't in `uv.lock`. The config lives under `[tool.semantic_release]` in `pyproject.toml`. Semantic-release:
 1. Works out the next version from conventional commits since the last `v*` tag: `feat:` → minor, `fix:`/`perf:` → patch, `!` or `BREAKING CHANGE` → major. `chore:` and other types don't release, so a main build with none of those is a no-op.
 2. Writes that version into `pyproject.toml` **in the Jenkins workspace only** and runs `uv build`, so the wheel and sdist carry it.
-3. Tags the main commit that was just tested `vX.Y.Z` and pushes **only the tag** over HTTPS with the `GITHUB_PAT` credential (Contents read/write on this repo).
+3. Tags the main commit that was just tested `vX.Y.Z` and pushes **only the tag** over HTTPS with the `GITHUB_PAT` credential (Contents read/write on this repo: tag, release and uploads).
+4. Creates the GitHub release for that tag and uploads the wheel and sdist to it (`semantic-release publish`). The notes are generated from the commits since the previous tag, grouped by type (Features, Bug Fixes, …). The first release, `v0.1.0`, just says "Initial Release".
+
+If the latest tag has no GitHub release, a main build with nothing new to release creates it. That covers `v0.1.0`, which was tagged before releases were turned on, and any run that pushed a tag and then failed. The tag's code is built at its version in a temporary `git worktree`, and the release is created with `semantic-release changelog --post-to-release-tag`.
 
 **Releases are tag-only. Nothing is ever committed to main.** main's ruleset requires every change to go through a PR, so a release commit is rejected (`GH013`). The `v*` tags are the version history. `project.version` in `pyproject.toml` stays at its placeholder `0.1.0` on main, so don't bump it by hand: semantic-release ignores it and reads the tags. There is no `CHANGELOG.md`.
 
-Jenkins archives `dist/*`. There is no GitHub release and no PyPI upload.
+Jenkins also archives `dist/*` on the build. There is no PyPI upload.
 
 Preview the next version locally:
 

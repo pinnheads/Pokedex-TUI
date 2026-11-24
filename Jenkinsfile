@@ -13,14 +13,17 @@
 // main, once both pass: a release. python-semantic-release works out the next version
 // from conventional commits since the last v* tag (feat -> minor, fix/perf -> patch,
 // "!" or BREAKING CHANGE -> major), writes it into pyproject.toml in the workspace only,
-// builds the wheel and sdist, tags the main commit vX.Y.Z and pushes just the tag.
-// Jenkins archives dist/. No commits worth a release -> no-op.
+// builds the wheel and sdist, tags the main commit vX.Y.Z and pushes just the tag, then
+// creates the GitHub release for it (notes generated from the commits) and uploads the
+// wheel and sdist to it. Jenkins archives dist/ too. No commits worth a release -> no-op,
+// except that a tag still missing its GitHub release (v0.1.0) gets one backfilled.
 //
 // Tag only, never a commit: main's ruleset requires every change to come through a PR,
 // so a release commit can't be pushed. The tag is the record of the version, and
 // pyproject.toml on main keeps its placeholder 0.1.0.
 //
-// GITHUB_PAT needs Contents read/write on this repo (push the tag).
+// GITHUB_PAT needs Contents read/write on this repo (push the tag, create the release
+// and upload its files).
 
 // Same checks on both platforms; mirrors what pre-commit runs locally, plus the tests.
 def checks() {
@@ -125,15 +128,48 @@ pipeline {
                     git checkout -q -B main HEAD
 
                     # uvx, so semantic-release doesn't have to be in uv.lock.
+                    semrel() { uvx -q --from "python-semantic-release>=10,<11" semantic-release "$@"; }
+                    has_release() {
+                        curl -sf -o /dev/null \
+                            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                            "https://api.github.com/repos/pinnheads/Pokedex-TUI/releases/tags/$1"
+                    }
+
+                    echo "No release needed" > "$WORKSPACE_TMP/release-status"
+                    before=$(semrel version --print-last-released-tag 2>/dev/null || true)
+
                     # --no-commit: stamp the version and build, but tag the existing main commit
-                    # and push only the tag (main rejects direct pushes).
-                    uvx --from "python-semantic-release>=10,<11" semantic-release version \
-                        --no-commit --no-changelog --no-vcs-release
+                    # and push only the tag (main rejects direct pushes). Also creates the
+                    # GitHub release for the new tag, with notes generated from the commits.
+                    semrel version --no-commit --no-changelog
+
+                    tag=$(semrel version --print-last-released-tag 2>/dev/null || true)
+                    if [ -z "$tag" ]; then
+                        echo "No release tag yet; nothing to publish."
+                    elif [ "$tag" != "$before" ]; then
+                        # New release: dist/ was just built at this version.
+                        semrel publish --tag "$tag"
+                        echo "Released $tag" > "$WORKSPACE_TMP/release-status"
+                    elif ! has_release "$tag"; then
+                        # The latest tag has no GitHub release: v0.1.0, tagged before releases
+                        # were turned on, or an earlier run that failed after pushing the tag.
+                        # Build that tag's code at its version in a separate worktree (main stays
+                        # checked out, which semantic-release needs), then create the release.
+                        echo "Backfilling the GitHub release for $tag"
+                        wt="$WORKSPACE_TMP/release-$tag"
+                        rm -rf "$wt" && git worktree add -q --detach "$wt" "$tag"
+                        (cd "$wt" && uv version --frozen "${tag#v}" && uv build)
+                        rm -rf dist && mv "$wt/dist" dist
+                        git worktree remove --force "$wt"
+                        semrel changelog --post-to-release-tag "$tag"
+                        semrel publish --tag "$tag"
+                        echo "Backfilled release $tag" > "$WORKSPACE_TMP/release-status"
+                    else
+                        echo "No new release; $tag is already on GitHub."
+                    fi
                 '''
                 script {
-                    def tag = sh(script: 'git describe --tags --exact-match HEAD 2>/dev/null || true',
-                                 returnStdout: true).trim()
-                    currentBuild.description = tag ? "Released ${tag}" : 'No release needed'
+                    currentBuild.description = readFile("${env.WORKSPACE_TMP}/release-status").trim()
                 }
             }
             post {
