@@ -74,7 +74,7 @@ uv run python -m pokedex_tui
 CI runs on Jenkins (see `Jenkinsfile`):
 
 - **Every branch and pull request:** `ruff check`, `ruff format --check`, `pyright` and `pytest` run in parallel on macOS (the `macos` agent) and Linux (a uv + Python 3.14 container on the controller).
-- **Merges to `main`:** after the same checks pass, [python-semantic-release](https://python-semantic-release.readthedocs.io/) picks the next version from conventional commits (`feat` → minor, `fix`/`perf` → patch, `!`/`BREAKING CHANGE` → major). It then updates `pyproject.toml`, `uv.lock` and `CHANGELOG.md`, pushes a `chore(release): X.Y.Z` commit and a `vX.Y.Z` tag, and Jenkins archives the wheel and sdist.
+- **Merges to `main`:** after the same checks pass, [python-semantic-release](https://python-semantic-release.readthedocs.io/) picks the next version from conventional commits (`feat` → minor, `fix`/`perf` → patch, `!`/`BREAKING CHANGE` → major). It tags the tested `main` commit `vX.Y.Z`, and Jenkins archives the wheel and sdist built with that version. Releases are tag-only: nothing is committed to `main`, so `pyproject.toml` keeps its placeholder version and the `v*` tags are the version history.
 
 The macOS agent needs `uv` from Homebrew. The release stage pushes with the `GITHUB_PAT` Jenkins credential, which needs Contents read/write on this repo. To preview the next version locally:
 

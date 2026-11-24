@@ -40,19 +40,18 @@ venvPath = "."
 venv = ".venv"
 
 
-# Release config used by the Jenkins "Release" stage on main.
+# Release config used by the Jenkins "Release" stage on main. Releases are git tags
+# only; project.version above stays 0.1.0 on main and is stamped at build time.
 # Version is derived from conventional commits since the last v* tag:
 # feat -> minor, fix/perf -> patch, "!" or "BREAKING CHANGE" -> major.
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
 tag_format = "v{version}"
-commit_message = "chore(release): {version}"
 allow_zero_version = true
 major_on_zero = false
-# Re-lock so uv.lock carries the new project version, then build wheel + sdist.
-build_command = "uv lock --upgrade-package pokedex-tui && uv build"
-# Extra files staged into the release commit alongside pyproject.toml.
-assets = ["uv.lock"]
+# Runs after the version is stamped into pyproject.toml (in the Jenkins workspace only;
+# releases are tag-only, see Jenkinsfile), so the wheel and sdist carry the new version.
+build_command = "uv build"
 
 [tool.semantic_release.branches.main]
 match = "main"
