@@ -1,4 +1,6 @@
-[![CI](https://github.com/pinnheads/Pokedex-TUI/actions/workflows/ci.yml/badge.svg)](https://github.com/pinnheads/Pokedex-TUI/actions/workflows/ci.yml)
+<a href="https://jenkins.utsavdeep.com/job/pokedex-tui/job/main/">
+        <img alt="Build" src="https://jenkins.utsavdeep.com/buildStatus/icon?job=pokedex-tui%2Fmain&style=plastic&subject=main" />
+</a>
 
 ## Pokedex TUI
 
@@ -65,6 +67,19 @@ cd Pokedex-TUI
 
 ```shell
 uv run python -m pokedex_tui
+```
+
+## CI and Releases
+
+CI runs on Jenkins (see `Jenkinsfile`):
+
+- **Every branch and pull request:** `ruff check`, `ruff format --check`, `pyright` and `pytest` run in parallel on macOS (the `macos` agent) and Linux (a uv + Python 3.14 container on the controller).
+- **Merges to `main`:** after the same checks pass, [python-semantic-release](https://python-semantic-release.readthedocs.io/) picks the next version from conventional commits (`feat` → minor, `fix`/`perf` → patch, `!`/`BREAKING CHANGE` → major). It then updates `pyproject.toml`, `uv.lock` and `CHANGELOG.md`, pushes a `chore(release): X.Y.Z` commit and a `vX.Y.Z` tag, and Jenkins archives the wheel and sdist.
+
+The macOS agent needs `uv` from Homebrew. The release stage pushes with the `GITHUB_PAT` Jenkins credential, which needs Contents read/write on this repo. To preview the next version locally:
+
+```sh
+uvx --from "python-semantic-release>=10,<11" semantic-release --noop version --print
 ```
 
 ## Acknowledgements

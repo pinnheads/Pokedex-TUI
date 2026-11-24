@@ -39,3 +39,25 @@ asyncio_mode = "auto"
 venvPath = "."
 venv = ".venv"
 
+
+# Release config used by the Jenkins "Release" stage on main.
+# Version is derived from conventional commits since the last v* tag:
+# feat -> minor, fix/perf -> patch, "!" or "BREAKING CHANGE" -> major.
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+tag_format = "v{version}"
+commit_message = "chore(release): {version}"
+allow_zero_version = true
+major_on_zero = false
+# Re-lock so uv.lock carries the new project version, then build wheel + sdist.
+build_command = "uv lock --upgrade-package pokedex-tui && uv build"
+# Extra files staged into the release commit alongside pyproject.toml.
+assets = ["uv.lock"]
+
+[tool.semantic_release.branches.main]
+match = "main"
+
+[tool.semantic_release.remote]
+type = "github"
+# Pushes over HTTPS with the token in GH_TOKEN (Jenkins credential GITHUB_PAT).
+token = { env = "GH_TOKEN" }
