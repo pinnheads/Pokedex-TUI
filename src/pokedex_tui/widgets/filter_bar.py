@@ -58,6 +58,11 @@ class FilterBar(Horizontal):
             super().__init__()
             self.sort_order = sort_order
 
+    class GenerationToggled(Message):
+        def __init__(self, gen: int) -> None:
+            super().__init__()
+            self.gen = gen
+
     def on_input_submitted(self) -> None:
         self.screen.query_one(Results.ExtendedTable).focus()
 
