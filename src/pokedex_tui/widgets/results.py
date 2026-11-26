@@ -13,7 +13,6 @@ from textual.widgets import DataTable, Static
 from pokedex_tui.models import Pokemon, SortOrder
 from pokedex_tui.theme import PALETTE
 from pokedex_tui.widgets.box import Box
-from pokedex_tui.widgets.filter_bar import FilterBar
 from pokedex_tui.widgets.type_badge import BADGE_WIDTH, type_badges_text
 
 if TYPE_CHECKING:
@@ -69,7 +68,7 @@ class Results(Widget):
         ]
 
         def action_pick_generation(self, gen: int) -> None:
-            self.post_message(FilterBar.GenerationToggled(gen))
+            self.post_message(Results.GenerationToggled(gen))
             # pokedex_app = cast("PokedexApp", self.app)
             # if pokedex_app.criteria.generations == frozenset({gen}):
             #     pokedex_app.criteria = pokedex_app.criteria.replace(
@@ -99,6 +98,11 @@ class Results(Widget):
         def __init__(self, sort_order: SortOrder) -> None:
             super().__init__()
             self.sort_order = sort_order
+
+    class GenerationToggled(Message):
+        def __init__(self, gen: int) -> None:
+            super().__init__()
+            self.gen = gen
 
     def __init__(
         self,
